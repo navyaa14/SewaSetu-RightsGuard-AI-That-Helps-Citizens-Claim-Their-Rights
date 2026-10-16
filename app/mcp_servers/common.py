@@ -187,7 +187,7 @@ class AuthGate:
                 return await self._send_json(send, 200, doc)
             except Exception:
                 return await self._send_json(send, 404, {"error": "not_found"})
-        if path in ("/", "/healthz"):
+        if path in ("/", "/healthz") or path == self.mcp_path.rsplit("/", 1)[0] + "/healthz":
             return await self._send_json(send, 200, {
                 "ok": True, "service": self.name, "mcp_endpoint": self.public_url,
                 "authorization_server": ISSUER, "scope": self.role})
@@ -228,6 +228,9 @@ def build_asgi(mcp, public_url, role, name):
     # Host-header checks are for servers bound to localhost; this one sits behind a TLS proxy
     # on a public name and authenticates every request, so the check is disabled.
     mcp.settings.transport_security = TransportSecuritySettings(enable_dns_rebinding_protection=False)
+    # serve MCP at the public path (e.g. /citizen/mcp behind one domain, or /mcp on its own host)
+    from urllib.parse import urlparse
+    mcp.settings.streamable_http_path = urlparse(public_url).path.rstrip("/") or "/mcp"
     inner = mcp.streamable_http_app()
     return _Lifespan(AuthGate(inner, public_url, role, name), inner)
 

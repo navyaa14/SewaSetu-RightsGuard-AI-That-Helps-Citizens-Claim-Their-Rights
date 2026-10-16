@@ -40,7 +40,9 @@ Typical flow (few calls):
 Rules come from the portal: never guess a date of birth, bank account or IFSC. If she does not
 know a value, ask her to read it from her document or passbook. The portal decides; do not
 promise approval. Older users may be slow, use simple words, and may speak Assamese, Bengali or Hindi:
-reply in her language."""
+reply in her language.
+Each result includes `say_to_applicant`: a plain message you can pass on (translated into her
+language). You speak TO the applicant on her behalf; never write as if you were her."""
 
 mcp = FastMCP("Sewa Setu - Old Age Pension (citizen)", instructions=INSTRUCTIONS,
               stateless_http=True, json_response=True)
@@ -389,7 +391,10 @@ def _draft_report(cur, mobile, data, doc_path, doc_name):
             "late_husband_name": data.get("husband_name") or None, "village": data.get("village"),
             "block": data.get("block"), "bank_account_number": data.get("bank_account"),
             "ifsc": data.get("ifsc")},
-        "age_proof": ("uploaded (%s)" % (doc_name or "document")) if doc_path else "not uploaded yet",
+        "age_proof": ("uploaded (%s)" % (doc_name or "document")) if doc_path else
+                     ("not uploaded: nothing has arrived through any upload link for this mobile. If she says she "
+                      "uploaded, the upload did not complete (link expired, or Upload not pressed): give a fresh link, "
+                      "or run the curl command if you have the file"),
         "missing": missing,
         "problems": problems,
     }
@@ -418,7 +423,28 @@ def _draft_report(cur, mobile, data, doc_path, doc_name):
             todo.append("get her age proof uploaded with the link")
         report["next_step"] = "; ".join(todo)
     report["notes"] = notes
+    report["say_to_applicant"] = _say_draft(report, data, doc_path)
     return report
+
+
+def _say_draft(report, data, doc_path):
+    d = report["details"]
+    if report["ready_to_submit"]:
+        acct = d.get("bank_account_number") or ""
+        return ("I have everything. Please check: name %s; date of birth %s; %s, %s; village %s, %s block; "
+                "bank account %s, IFSC %s; age proof received. If all of this is correct and you agree to the "
+                "declaration, shall I submit the application?"
+                % (d["applicant_name"], d["date_of_birth"], d["gender"], d["marital_status"], d["village"],
+                   d["block"], acct, d["ifsc"]))
+    parts = ["I have saved what you told me."]
+    if report["problems"]:
+        parts.append("There is a problem: " + "; ".join(report["problems"]) + ".")
+    if report["missing"]:
+        parts.append("I still need: " + ", ".join(report["missing"]) + ".")
+    if not doc_path and report.get("age_proof_upload"):
+        parts.append("Please upload a photo of your age proof (birth certificate, school leaving certificate or "
+                     "Voter ID) using this link: %s" % report["age_proof_upload"]["upload_link"])
+    return " ".join(parts)
 
 
 @mcp.tool()
@@ -508,6 +534,10 @@ def submit_application(ctx: Context, confirmed: bool = False) -> dict:
         "track": "Ask this assistant, or use %s/status with her mobile number and her date of birth "
                  "as DDMMYYYY." % portal_base(),
         "message": "Application %s submitted. Please note this number." % app_no,
+        "say_to_applicant": ("Your pension application is submitted. Your application number is %s; please keep "
+                             "it safe. The block officer should decide by %s. If nobody decides by then, it is "
+                             "approved automatically. You will get an SMS." %
+                             (app_no, _rights_clock("PENDING", submitted, None)["decision_due_by"])),
     }
 
 
@@ -577,6 +607,17 @@ def my_applications(ctx: Context) -> dict:
         out = {"mobile": mask_mobile(mobile), "applications": apps}
         if not apps:
             out["message"] = "No application has been made with this mobile number yet."
+            out["say_to_applicant"] = "There is no pension application with this mobile number yet."
+        else:
+            a0 = apps[0]
+            rc = a0.get("rights_clock") or {}
+            msg = "Your application %s is %s." % (a0["application_no"], a0["meaning"])
+            if a0["status"] == "PENDING" and rc:
+                msg += (" A decision is due by %s (%s days left). If no decision is made by then, it is approved "
+                        "automatically." % (rc["decision_due_by"], rc.get("days_left_for_decision")))
+            if a0["status"] == "REJECTED":
+                msg += " Reason: %s. You may apply again." % a0.get("reason")
+            out["say_to_applicant"] = msg
         if data or doc_path:
             out["unfinished_draft"] = {"fields_saved": sorted(data.keys()), "age_proof_uploaded": bool(doc_path),
                                        "next_step": "call save_application_details to see what is missing"}

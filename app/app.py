@@ -799,22 +799,30 @@ def review_flags(cur, app_id):
         flags.append({"code": code, "severity": "warn", "detail": e + " (as currently stored: %s)"
                       % (ifsc if code == "IFSC_INVALID" else "see record")})
     if name and dob:
-        cur.execute("SELECT application_no, status, block, mobile FROM applications WHERE id <> %s "
+        cur.execute("SELECT application_no, status, block, mobile, village, gender, bank_account = %s, "
+                    "submitted_at FROM applications WHERE id <> %s "
                     "AND lower(applicant_name) = lower(%s) AND dob = %s AND mobile <> %s "
                     "AND status IN ('PENDING','APPROVED','DEEMED_APPROVED') LIMIT 5",
-                    (aid, name, dob, mobile))
-        for other_no, other_status, other_block, other_mobile in cur.fetchall():
+                    (bank, aid, name, dob, mobile))
+        for o_no, o_status, o_block, o_mobile, o_village, o_gender, o_same_bank, o_sub in cur.fetchall():
+            match = ["same name", "same date of birth"]
+            match += ["same bank account"] if o_same_bank else []
+            match += ["same village"] if (o_village or "").lower() == (village or "").lower() else []
+            match += ["same gender"] if o_gender == gender else ["different gender (%s)" % o_gender]
             flags.append({"code": "POSSIBLE_DUPLICATE_BENEFICIARY", "severity": "warn",
-                          "detail": "same name and date of birth as %s (%s, %s block, mobile XXXXXX%s); "
-                                    "one person may hold only one pension"
-                                    % (other_no, other_status, other_block, other_mobile[-4:])})
+                          "detail": "%s as %s (%s since %s; %s, %s block; mobile XXXXXX%s). One person may hold "
+                                    "only one pension." % (", ".join(match), o_no, o_status,
+                                                            o_sub.strftime("%d %b %Y") if o_sub else "?",
+                                                            o_village, o_block, o_mobile[-4:])})
     if bank:
-        cur.execute("SELECT application_no, status FROM applications WHERE id <> %s AND bank_account = %s "
-                    "AND mobile <> %s AND status IN ('PENDING','APPROVED','DEEMED_APPROVED') LIMIT 3",
-                    (aid, bank, mobile))
-        for other_no, other_status in cur.fetchall():
+        cur.execute("SELECT application_no, status, block, applicant_name FROM applications WHERE id <> %s "
+                    "AND bank_account = %s AND mobile <> %s AND lower(applicant_name) <> lower(%s) "
+                    "AND status IN ('PENDING','APPROVED','DEEMED_APPROVED') LIMIT 3",
+                    (aid, bank, mobile, name or ""))
+        for o_no, o_status, o_block, o_name in cur.fetchall():
             flags.append({"code": "SAME_BANK_ACCOUNT", "severity": "warn",
-                          "detail": "bank account also used by %s (%s)" % (other_no, other_status)})
+                          "detail": "bank account also used by %s (%s, %s block, applicant %s); the pension must "
+                                    "go to the applicant's own account" % (o_no, o_status, o_block, o_name)})
     if status == "PENDING" and submitted:
         due = submitted + timedelta(days=SLA_DAYS)
         hours = (due - datetime.now()).total_seconds() / 3600
@@ -1101,22 +1109,32 @@ def _load_eval_runs():
                 target.extend(_json.load(fh))
         except (OSError, ValueError):
             pass
-    return runs, personas, changes
+    contract = None
+    try:
+        with open(os.path.join(EVAL_DIR, "contract-latest.json"), encoding="utf-8") as fh:
+            contract = _json.load(fh)
+    except (OSError, ValueError):
+        pass
+    return runs, personas, changes, contract
 
 
 @app.route("/eval-dashboard")
 def eval_dashboard():
-    runs, personas, changes = _load_eval_runs()
+    runs, personas, changes, contract = _load_eval_runs()
     sel = request.args.get("run")
     run = next((r for r in runs if r.get("run_id") == sel), runs[0] if runs else None)
+    by_persona = {}
+    if run:
+        for res in run.get("results", []):
+            by_persona.setdefault(res["persona"], []).append(res)
     return render_template("eval_dashboard.html", runs=runs, run=run, personas=personas,
-                           changes=changes)
+                           changes=changes, contract=contract, by_persona=by_persona)
 
 
 @app.route("/eval-dashboard/runs.json")
 def eval_dashboard_json():
-    runs, personas, changes = _load_eval_runs()
-    return {"runs": runs, "personas": personas, "changes": changes}
+    runs, personas, changes, contract = _load_eval_runs()
+    return {"runs": runs, "personas": personas, "changes": changes, "contract": contract}
 
 
 from oauth import oauth as _oauth_blueprint   # noqa: E402  (needs the definitions above)
