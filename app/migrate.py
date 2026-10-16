@@ -22,7 +22,7 @@ def connect():
     c = configparser.ConfigParser()
     c.read(os.path.join(BASE, "config", "app.ini"))
     g = lambda k, e: os.environ.get(e) or c.get("database", k)
-    for _ in range(60):
+    for _ in range(450):  # first boot loads a 35 MB seed; on a small VM that takes minutes
         try:
             return psycopg2.connect(host=g("host", "DB_HOST"), port=g("port", "DB_PORT"),
                                     dbname=g("name", "DB_NAME"), user=g("user", "DB_USER"),

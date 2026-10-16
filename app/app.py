@@ -1118,6 +1118,16 @@ def _load_eval_runs():
     return runs, personas, changes, contract
 
 
+@app.template_filter("mdlite")
+def _mdlite(text):
+    """Escape, then render **bold** and `code` from assistant messages."""
+    from markupsafe import escape, Markup
+    t = str(escape(text or ""))
+    t = re.sub(r"\*\*(.+?)\*\*", r"<b>\1</b>", t)
+    t = re.sub(r"`([^`]+)`", r"<code>\1</code>", t)
+    return Markup(t)
+
+
 @app.route("/eval-dashboard")
 def eval_dashboard():
     runs, personas, changes, contract = _load_eval_runs()
