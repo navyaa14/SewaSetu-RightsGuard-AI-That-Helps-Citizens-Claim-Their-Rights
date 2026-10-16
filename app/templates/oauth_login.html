@@ -5,13 +5,13 @@
 Sign in to continue. {% if role == 'citizen' %}<b>Enter the OTP only on this page.</b>{% endif %}</p>
 {% if role == 'citizen' %}
   {% if not pending_mobile %}
-  <form method="post">
+  <form method="post"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <label>Mobile Number</label>
     <input type="text" name="mobile" maxlength="10" placeholder="10 digit mobile number">
     <p><button class="btn" type="submit">Send OTP</button></p>
   </form>
   {% else %}
-  <form method="post">
+  <form method="post"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <p class="note">An OTP has been sent to {{ pending_mobile }}.</p>
     <label>OTP</label>
     <input type="text" name="otp" maxlength="6" style="max-width:160px">
@@ -19,7 +19,7 @@ Sign in to continue. {% if role == 'citizen' %}<b>Enter the OTP only on this pag
   </form>
   {% endif %}
 {% else %}
-  <form method="post">
+  <form method="post"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <label>Username</label>
     <input type="text" name="username">
     <label>Password</label>

@@ -8,6 +8,7 @@ x-app-env: &app-env
   OFFICER_MCP_URL: https://${DOMAIN}/officer/mcp
   PORTAL_INTERNAL_URL: http://app:8000
   SECRET_KEY: ${SECRET_KEY:?set SECRET_KEY in .env}
+  DB_PASSWORD: ${DB_PASSWORD:?set DB_PASSWORD in .env}
   ADMIN_USERNAME: ${ADMIN_USERNAME:-admin}
   ADMIN_PASSWORD: ${ADMIN_PASSWORD:?set ADMIN_PASSWORD in .env}
   ADMIN_FULL_NAME: ${ADMIN_FULL_NAME:-District Social Welfare Officer}
@@ -22,7 +23,7 @@ services:
     environment:
       POSTGRES_DB: sewasetu
       POSTGRES_USER: sewasetu
-      POSTGRES_PASSWORD: sewasetu123
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?set DB_PASSWORD in .env}
     volumes:
       - pgdata:/var/lib/postgresql/data
       - ./app/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql
@@ -63,10 +64,12 @@ services:
     restart: unless-stopped
     # Run the deemed-approval job once at startup (so a freshly restored
     # database is brought up to date), then hand over to cron for the nightly run.
-    command: ["sh", "-c", "until python /app/scripts/deemed_approval.py; do sleep 5; done; exec cron -f"]
+    # cron starts jobs without the container's environment, so the DB password is written to a
+    # root-only file that the job reads.
+    command: ["sh", "-c", "umask 077; env | grep -E '^(DB_[A-Z]+|SMS_GATEWAY_URL)=' > /app/runtime.env; until python /app/scripts/deemed_approval.py; do sleep 5; done; exec cron -f"]
     environment:
       TZ: Asia/Kolkata
-      SECRET_KEY: ${SECRET_KEY}
+      DB_PASSWORD: ${DB_PASSWORD:?set DB_PASSWORD in .env}
     depends_on: [db]
     volumes:
       - applogs:/var/log/sewasetu

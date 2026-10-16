@@ -191,6 +191,7 @@ def _upload_instructions(cur, mobile):
     return {
         "upload_link": link,
         "valid_for_minutes": portal.UPLOAD_LINK_MINUTES,
+        "one_use": "Each link stores one document. To replace a document, get a new link.",
         "how": ("Send her this link: she (or a family member) opens it on the phone and takes a photo "
                 "of her birth certificate, school leaving certificate or Voter ID. If you can run shell "
                 "commands and have the file, run the curl command instead."),
@@ -525,21 +526,22 @@ def submit_application(ctx: Context, confirmed: bool = False) -> dict:
                 "message": "This application was already submitted; nothing new was created."}
     finally:
         cur.close(); conn.close()
-    portal.send_sms(mobile, "Sewa Setu: application %s received. Track at the status portal "
-                            "with mobile no. and password (DOB as DDMMYYYY)." % app_no)
+    sms_ok = portal.send_sms(mobile, "Sewa Setu: application %s received. Track at the status portal "
+                                     "with mobile no. and password (DOB as DDMMYYYY)." % app_no)
     submitted = portal.now_ist()
     log.info("submitted %s for %s via %s", app_no, mask_mobile(mobile), client)
     return {
         "submitted": True, "application_no": app_no, "status": "PENDING",
         "status_meaning": _status_words("PENDING"),
         "rights_clock": _rights_clock("PENDING", submitted, None),
-        "sms": "An SMS with the application number has been sent to her mobile.",
+        "sms": ("An SMS with the application number was handed to the SMS gateway for her mobile."
+                if sms_ok else "The SMS could NOT be sent. Make sure she writes down the application number now."),
         "track": "Ask this assistant, or use %s/status with her mobile number and her date of birth "
                  "as DDMMYYYY." % portal_base(),
         "message": "Application %s submitted. Please note this number." % app_no,
         "say_to_applicant": ("Your pension application is submitted. Your application number is %s; please keep "
                              "it safe. The block officer should decide by %s. If nobody decides by then, it is "
-                             "approved automatically. You will get an SMS." %
+                             "approved automatically." %
                              (app_no, _rights_clock("PENDING", submitted, None)["decision_due_by"])),
     }
 

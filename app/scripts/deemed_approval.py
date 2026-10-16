@@ -26,13 +26,29 @@ with open(CONFIG_PATH) as fh:
     config.read_file(fh)
 
 SLA_DAYS = config.getint("pension", "sla_days")
-SMS_GATEWAY_URL = os.environ.get("SMS_GATEWAY_URL") or config.get("app", "sms_gateway_url")
+SMS_GATEWAY_URL = None  # set below, after the runtime env is loaded
 IST = ZoneInfo("Asia/Kolkata")
 
 
 def now_ist():
     # The portal stores IST wall-clock times; the container clock may be UTC.
     return datetime.now(IST).replace(tzinfo=None)
+
+
+def _load_runtime_env(path=os.path.join(BASE_DIR, "runtime.env")):
+    """cron runs this job without the container's environment; the scheduler writes it here."""
+    try:
+        with open(path) as fh:
+            for line in fh:
+                k, _, v = line.strip().partition("=")
+                if k and v:
+                    os.environ.setdefault(k, v)
+    except OSError:
+        pass
+
+
+_load_runtime_env()
+SMS_GATEWAY_URL = os.environ.get("SMS_GATEWAY_URL") or config.get("app", "sms_gateway_url")
 
 
 def db(key, env):

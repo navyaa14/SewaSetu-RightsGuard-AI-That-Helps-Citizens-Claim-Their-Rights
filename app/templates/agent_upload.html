@@ -17,7 +17,7 @@
   <p>Take a clear photo of <b>one</b> of these: birth certificate, school leaving certificate,
   or Voter ID. JPG, PNG or PDF, up to 5 MB.</p>
   {% if message %}<div class="flash">{{ message }}</div>{% endif %}
-  <form method="post" enctype="multipart/form-data">
+  <form method="post" enctype="multipart/form-data"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <input type="file" name="document" accept="image/jpeg,image/png,application/pdf" capture="environment" required><br>
     <button class="btn" type="submit">Upload</button>
   </form>

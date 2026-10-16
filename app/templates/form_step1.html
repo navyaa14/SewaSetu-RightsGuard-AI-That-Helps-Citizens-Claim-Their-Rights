@@ -2,7 +2,7 @@
 {% block content %}
 <div class="steps"><b>Step 2 of 6:</b> Personal Details</div>
 <h2>Personal Details</h2>
-<form method="post">
+<form method="post"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
   <label>Full Name of Applicant (as per age proof document)</label>
   <input type="text" name="applicant_name" value="{{ data.get('applicant_name','') }}">
   <label>Date of Birth (DD/MM/YYYY)</label>

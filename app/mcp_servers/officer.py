@@ -259,11 +259,13 @@ def record_decision(ctx: Context, application_no: str, decision: str, reason_cod
         mobile, status, decided_at = cur.fetchone()
     finally:
         cur.close(); conn.close()
-    portal.notify_decision(no, mobile, d, reason_code)
+    sms_ok = portal.notify_decision(no, mobile, d, reason_code)
     log.info("%s %s by %s", no, d, officer["username"])
     return {"recorded": True, "application_no": no, "status": status, "decided_at": iso(decided_at),
             "recorded_against": "%s (%s)" % (officer["full_name"], officer["username"]),
-            "message": msg + " The applicant has been informed by SMS."}
+            "applicant_sms": "handed to the SMS gateway" if sms_ok else "FAILED: inform the applicant another way",
+            "message": msg + (" An SMS to the applicant was handed to the gateway." if sms_ok else
+                              " The SMS to the applicant could not be sent; she has not been informed.")}
 
 
 app = build_asgi(mcp, PUBLIC_URL, "officer", "Sewa Setu block officer assistant")

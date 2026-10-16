@@ -2,7 +2,7 @@
 {% block content %}
 <div class="steps"><b>Step 3 of 6:</b> Address Details</div>
 <h2>Address Details</h2>
-<form method="post">
+<form method="post"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
   <label>Village / Town</label>
   <input type="text" name="village" value="{{ data.get('village','') }}">
   <label>Block</label>

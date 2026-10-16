@@ -21,7 +21,7 @@
 <p class="note">A pending application can be withdrawn. After withdrawing, you may
 submit a fresh application with the same mobile number.</p>
 <form method="post" action="/application/{{ app_id }}/withdraw"
-      onsubmit="return confirm('Withdraw application {{ a[0] }}? This cannot be undone.');">
+      onsubmit="return confirm('Withdraw application {{ a[0] }}? This cannot be undone.');"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
   <button class="btn" style="background:#a33" type="submit">Withdraw this application</button>
 </form>
 {% elif a[8] in ('WITHDRAWN', 'REJECTED') %}

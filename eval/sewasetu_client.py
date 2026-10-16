@@ -59,6 +59,12 @@ def _last_msg_id(mobile):
     return max([m["id"] for m in msgs] or [0])
 
 
+def csrf(s, url):
+    """Load a form page in this browser session and return its CSRF token."""
+    m = re.search(r'name="csrf_token" value="([^"]+)"', s.get(url).text)
+    return m.group(1) if m else ""
+
+
 def sign_in(role, resource, mobile=None, username=None, password=None, client_name="Sewa Setu eval client",
             scope=None):
     """Full OAuth 2.1 authorization-code + PKCE flow, exactly as an MCP client drives it.
@@ -79,16 +85,19 @@ def sign_in(role, resource, mobile=None, username=None, password=None, client_na
         raise RuntimeError("authorize error: " + loc)
     rid = parse_qs(urlparse(loc).query)["rid"][0]
     login = PORTAL + "/oauth/login?rid=" + rid
+    tok_ = csrf(s, login)
     if role == "citizen":
         before = _last_msg_id(mobile)
-        s.post(login, data={"mobile": mobile})
+        s.post(login, data={"mobile": mobile, "csrf_token": tok_})
         otp = read_otp(mobile, before)
-        r = s.post(login, data={"otp": otp}, allow_redirects=False)
+        r = s.post(login, data={"otp": otp, "csrf_token": tok_}, allow_redirects=False)
     else:
-        r = s.post(login, data={"username": username, "password": password}, allow_redirects=False)
+        r = s.post(login, data={"username": username, "password": password, "csrf_token": tok_},
+                   allow_redirects=False)
     if r.status_code != 302 or "consent" not in r.headers.get("Location", ""):
         raise RuntimeError("login failed for %s" % (mobile or username))
-    r = s.post(PORTAL + "/oauth/consent?rid=" + rid, data={"decision": "allow"}, allow_redirects=False)
+    consent = PORTAL + "/oauth/consent?rid=" + rid
+    r = s.post(consent, data={"decision": "allow", "csrf_token": csrf(s, consent)}, allow_redirects=False)
     code = parse_qs(urlparse(r.headers["Location"]).query)["code"][0]
     tok = s.post(PORTAL + "/oauth/token", data={"grant_type": "authorization_code", "code": code,
                                                 "code_verifier": verifier, "client_id": cid,

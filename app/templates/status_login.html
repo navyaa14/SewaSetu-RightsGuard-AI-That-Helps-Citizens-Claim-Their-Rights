@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block content %}
 <h2>Application Status Portal</h2>
-<form method="post">
+<form method="post"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
   <label>Mobile Number</label>
   <input type="text" name="mobile" maxlength="10">
   <label>Password</label>

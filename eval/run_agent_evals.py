@@ -31,6 +31,7 @@ os.environ.setdefault("SEWASETU_DEV", "1")
 from sewasetu_client import (CITIZEN_MCP, OFFICER_MCP, q, fresh_mobile, sign_in, make_age_proof,  # noqa: E402
                              upload_via_link)
 from personas import CITIZENS, OFFICERS  # noqa: E402
+from redact import redact  # noqa: E402
 
 ASSISTANT_MODEL = os.environ.get("EVAL_ASSISTANT_MODEL", "haiku")
 PERSONA_MODEL = os.environ.get("EVAL_PERSONA_MODEL", "sonnet")
@@ -358,7 +359,7 @@ def main():
            "persona_model": PERSONA_MODEL, "passed": passed, "total": len(results), "results": results}
     path = os.path.join(HERE, "results", "run-%s.json" % run["run_id"])
     with open(path, "w", encoding="utf-8") as fh:
-        json.dump(run, fh, indent=1, ensure_ascii=False)
+        json.dump(redact(run), fh, indent=1, ensure_ascii=False)
     personas = [{k: p.get(k) for k in ("id", "name", "age", "village", "block", "why", "speaks", "goal", "opening")}
                 | {"checks": [c[0] for c in p["checks"]], "side": "officer" if p in OFFICERS else "citizen"}
                 for p in CITIZENS + OFFICERS]

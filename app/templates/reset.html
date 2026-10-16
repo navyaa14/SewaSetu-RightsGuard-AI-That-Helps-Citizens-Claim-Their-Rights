@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block content %}
 <h2>Reset Password</h2>
-<form method="post">
+<form method="post"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
   <label>Registered Mobile Number</label>
   <input type="text" name="mobile">
   <p><button class="btn" type="submit">Reset Password</button></p>

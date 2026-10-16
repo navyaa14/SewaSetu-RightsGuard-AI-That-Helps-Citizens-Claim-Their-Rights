@@ -59,6 +59,39 @@ app.secret_key = _secret
 app.config["SESSION_COOKIE_HTTPONLY"] = True
 app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
 app.config["MAX_CONTENT_LENGTH"] = 6 * 1024 * 1024
+# Behind HTTPS in production: the session cookie (which carries the officer flag) never goes
+# over plain HTTP.
+app.config["SESSION_COOKIE_SECURE"] = os.environ.get("PUBLIC_BASE_URL", "").startswith("https://")
+
+# ---------------------------------------------------------------------------
+# CSRF: every browser form carries a per-session token. Exempt only endpoints that do not
+# use the session cookie: OAuth machine endpoints (RFC 6749/7591/7009) and upload links,
+# which are authorised by their unguessable URL (they are also used with curl).
+# ---------------------------------------------------------------------------
+
+CSRF_EXEMPT_PREFIXES = ("/oauth/token", "/oauth/register", "/oauth/revoke", "/u/")
+
+
+def csrf_token():
+    from flask import session as _s
+    if "csrf" not in _s:
+        _s["csrf"] = secrets.token_urlsafe(24)
+    return _s["csrf"]
+
+
+app.jinja_env.globals["csrf_token"] = csrf_token
+
+
+@app.before_request
+def _csrf_protect():
+    if request.method != "POST" or request.path.startswith(CSRF_EXEMPT_PREFIXES):
+        return None
+    sent = request.form.get("csrf_token", "")
+    expected = session.get("csrf", "")
+    if not expected or not secrets.compare_digest(sent.encode(), expected.encode()):
+        return ("This form has expired or did not come from this site. Please go back, reload "
+                "the page and try again."), 400
+    return None
 # Two hours: elderly applicants fill the form slowly; the draft lives in the session.
 app.config["PERMANENT_SESSION_LIFETIME"] = 7200
 
@@ -131,11 +164,17 @@ def hash_password(p):
 
 
 def send_sms(mobile, text):
+    """Hand an SMS to the gateway. Returns True only if the gateway accepted it (queued);
+    callers must not tell anyone a message was sent when this is False."""
     try:
-        requests.post(SMS_GATEWAY_URL + "/api/send",
-                      json={"to": mobile, "text": text}, timeout=5)
+        r = requests.post(SMS_GATEWAY_URL + "/api/send",
+                          json={"to": mobile, "text": text}, timeout=5)
+        if r.ok:
+            return True
+        app.logger.error("sms gateway refused: %s %s" % (r.status_code, r.text[:200]))
     except Exception as e:
         app.logger.error("sms gateway error: %s" % e)
+    return False
 
 
 def deadline_remaining():
@@ -847,7 +886,7 @@ def notify_decision(app_no, mobile, status, reason_code=""):
     else:
         text = ("Sewa Setu: your pension application %s was not approved (%s). You may apply again."
                 % (app_no, REJECTION_REASONS.get((reason_code or "").upper(), "see status portal")))
-    send_sms(mobile, text)
+    return send_sms(mobile, text)
 
 
 def _session_officer():
@@ -1011,7 +1050,7 @@ def admin_reject(app_id):
 # browser, and from a terminal: curl -F document=@voter-id.jpg <link>
 # ---------------------------------------------------------------------------
 
-UPLOAD_LINK_MINUTES = 30
+UPLOAD_LINK_MINUTES = 30   # each link stores one document; a replacement needs a fresh link
 
 
 def create_upload_link(cur, mobile):
@@ -1032,12 +1071,14 @@ def _wants_json():
 @app.route("/u/<token>", methods=["GET", "POST"])
 def agent_upload(token):
     conn = get_db(); cur = conn.cursor()
-    cur.execute("SELECT mobile, expires_at FROM upload_tokens WHERE token_hash = %s",
+    cur.execute("SELECT mobile, expires_at, used_at FROM upload_tokens WHERE token_hash = %s",
                 (hashlib.sha256(token.encode()).hexdigest(),))
     row = cur.fetchone()
-    if not row or row[1] < datetime.now():
+    if not row or row[1] < datetime.now() or row[2] is not None:
         cur.close(); conn.close()
-        msg = "This upload link has expired. Ask the assistant for a new one."
+        msg = ("This upload link has already been used. To replace the document, ask the assistant for a "
+               "new link." if row and row[2] is not None else
+               "This upload link has expired. Ask the assistant for a new one.")
         if _wants_json():
             return {"ok": False, "error": msg}, 410
         return render_template("agent_upload.html", expired=True, message=msg), 410
@@ -1055,13 +1096,24 @@ def agent_upload(token):
             if _wants_json():
                 return {"ok": False, "error": problem}, 400
             return render_template("agent_upload.html", masked=masked, message=problem), 400
+        # claim the link atomically: a link stores exactly one document
+        cur.execute("UPDATE upload_tokens SET used_at = %s WHERE token_hash = %s AND used_at IS NULL "
+                    "RETURNING 1", (datetime.now(), hashlib.sha256(token.encode()).hexdigest()))
+        if not cur.fetchone():
+            conn.rollback(); cur.close(); conn.close()
+            try:
+                os.remove(path)
+            except OSError:
+                pass
+            msg = "This upload link has already been used. Ask the assistant for a new link."
+            if _wants_json():
+                return {"ok": False, "error": msg}, 410
+            return render_template("agent_upload.html", expired=True, message=msg), 410
         cur.execute("INSERT INTO agent_drafts (mobile, data, doc_path, doc_name, updated_at) "
                     "VALUES (%s, '{}'::jsonb, %s, %s, %s) ON CONFLICT (mobile) DO UPDATE SET "
                     "doc_path = EXCLUDED.doc_path, doc_name = EXCLUDED.doc_name, "
                     "updated_at = EXCLUDED.updated_at",
                     (mobile, path, sanitize(f.filename, 100), datetime.now()))
-        cur.execute("UPDATE upload_tokens SET used_at = %s WHERE token_hash = %s",
-                    (datetime.now(), hashlib.sha256(token.encode()).hexdigest()))
         conn.commit(); cur.close(); conn.close()
         msg = ("Age proof received for mobile %s. Go back to the assistant and say it is "
                "uploaded." % masked)

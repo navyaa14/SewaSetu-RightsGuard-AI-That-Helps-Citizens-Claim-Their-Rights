@@ -19,8 +19,9 @@ from mcp import ClientSession
 from mcp.client.streamable_http import streamablehttp_client
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from redact import redact  # noqa: E402
 from sewasetu_client import (PORTAL, CITIZEN_MCP, OFFICER_MCP, q, fresh_mobile, sign_in, revoke,  # noqa: E402
-                             make_age_proof, upload_via_link)
+                             make_age_proof, upload_via_link, csrf)
 
 FIX = os.path.join(os.path.dirname(os.path.abspath(__file__)), "fixtures")
 os.makedirs(FIX, exist_ok=True)
@@ -173,7 +174,8 @@ def t_happy():
     assert audit[0][0] == "SUBMIT" and audit[0][1] == "applicant:" + mobile and audit[0][2].startswith("AI assistant"), audit
     assert q("SELECT 1 FROM portal_users WHERE mobile = %s", (mobile,)), "status-portal account missing"
     s = requests.Session()
-    r = s.post(PORTAL + "/status", data={"mobile": mobile, "password": "12031952"})
+    r = s.post(PORTAL + "/status", data={"mobile": mobile, "password": "12031952",
+                                         "csrf_token": csrf(s, PORTAL + "/status")})
     assert res["application_no"] in r.text, "not visible on the status portal"
     mine = c("my_applications")
     assert mine["applications"][0]["rights_clock"]["days_left_for_decision"] == 15, mine
@@ -392,8 +394,11 @@ def t_injection():
       "an unattended program must never approve a pension; README admits revocation was missing")
 def t_program_token():
     s = requests.Session()
-    s.post(PORTAL + "/admin", data={"username": "admin", "password": OFF_PW["admin"]})
-    r = s.post(PORTAL + "/admin/tokens", data={"label": "contract test", "audience": OFFICER_MCP, "days": "1"})
+    s.post(PORTAL + "/admin", data={"username": "admin", "password": OFF_PW["admin"],
+                                    "csrf_token": csrf(s, PORTAL + "/admin")})
+    tok_ = csrf(s, PORTAL + "/admin/tokens")
+    r = s.post(PORTAL + "/admin/tokens", data={"label": "contract test", "audience": OFFICER_MCP, "days": "1",
+                                               "csrf_token": tok_})
     token = r.text.split('word-break:break-all;white-space:pre-wrap">')[1].split("<")[0].strip()
     prog = Call(OFFICER_MCP, token)
     assert "cases" in prog("pending_queue")
@@ -403,10 +408,76 @@ def t_program_token():
     assert res["recorded"] is False, res
     import jwt as _jwt
     jti = _jwt.decode(token, options={"verify_signature": False})["jti"]
-    s.post(PORTAL + "/admin/tokens", data={"revoke_jti": jti})
+    s.post(PORTAL + "/admin/tokens", data={"revoke_jti": jti, "csrf_token": tok_})
     r = requests.post(OFFICER_MCP, json={}, headers={"Authorization": "Bearer " + token})
     assert r.status_code == 401, r.status_code
     return "read ok; decide refused; 401 after revocation"
+
+
+@test("Officer actions cannot be forged from another site (CSRF)",
+      "audit finding: admin POST actions had no CSRF protection; a signed-in officer visiting a hostile page could approve")
+def t_csrf():
+    mobile, _, c = citizen_session()
+    sub = full_application(c, mobile, name="Csrf Target", dob="04/04/1950")
+    app_id = q("SELECT id FROM applications WHERE application_no = %s", (sub["application_no"],))[0][0]
+    s = requests.Session()
+    s.post(PORTAL + "/admin", data={"username": "admin", "password": OFF_PW["admin"],
+                                    "csrf_token": csrf(s, PORTAL + "/admin")})
+    r = s.post(PORTAL + "/admin/approve/%d" % app_id, data={"note": "forged"})       # no token, as a cross-site form would
+    assert r.status_code == 400, r.status_code
+    r = s.post(PORTAL + "/admin/approve/%d" % app_id, data={"note": "x", "csrf_token": "guess"})
+    assert r.status_code == 400, r.status_code
+    assert q("SELECT status FROM applications WHERE id = %s", (app_id,)) == [("PENDING",)]
+    tok_ = csrf(s, PORTAL + "/admin/application/%d" % app_id)
+    s.post(PORTAL + "/admin/approve/%d" % app_id, data={"note": "checked age proof", "csrf_token": tok_})
+    assert q("SELECT status FROM applications WHERE id = %s", (app_id,)) == [("APPROVED",)]
+    return "forged and guessed tokens refused (400); real form works"
+
+
+@test("An upload link stores exactly one document",
+      "audit finding: used_at was recorded but not enforced; a leaked link could replace the age proof later")
+def t_upload_once():
+    mobile, _, c = citizen_session()
+    link = c("get_age_proof_upload_link")["upload_link"]
+    d1 = make_age_proof(os.path.join(FIX, "once1-%s.jpg" % mobile), "Once Test", "01/01/1950")
+    assert upload_via_link(link, d1)["ok"]
+    second = upload_via_link(link, d1)
+    assert second["ok"] is False and "already been used" in second["error"], second
+    fresh = c("get_age_proof_upload_link")["upload_link"]
+    assert upload_via_link(fresh, d1)["ok"]
+    return "second upload on the same link refused (410); a fresh link works"
+
+
+@test("The original web form still works end to end, and shows up for the assistant",
+      "both channels must keep working and see the same records (CSRF must not break the counter's own flow)")
+def t_web_form():
+    import re as _re
+    from sewasetu_client import read_otp, _last_msg_id
+    mobile = fresh_mobile()
+    s = requests.Session()
+    page = s.get(PORTAL + "/apply").text
+    a, b = map(int, _re.search(r"(\d) \+ (\d)", page).groups())
+    tok_ = _re.search(r'name="csrf_token" value="([^"]+)"', page).group(1)
+    before = _last_msg_id(mobile)
+    s.post(PORTAL + "/apply", data={"mobile": mobile, "captcha": a + b, "csrf_token": tok_})
+    s.post(PORTAL + "/verify", data={"otp": read_otp(mobile, before), "csrf_token": tok_})
+    s.post(PORTAL + "/form/1", data={"applicant_name": "Web Form Bahen", "dob": "07/07/1951", "gender": "Female",
+                                     "marital_status": "Married", "csrf_token": tok_})
+    s.post(PORTAL + "/form/2", data={"village": "Kakotibari", "block": "Sonari", "csrf_token": tok_})
+    s.post(PORTAL + "/form/3", data={"bank_account": "11122233344", "ifsc": "SBIN0003077", "csrf_token": tok_})
+    doc = make_age_proof(os.path.join(FIX, "web-%s.jpg" % mobile), "Web Form Bahen", "07/07/1951")
+    with open(doc, "rb") as fh:
+        s.post(PORTAL + "/upload", files={"document": ("id.jpg", fh, "image/jpeg")}, data={"csrf_token": tok_})
+    r = s.post(PORTAL + "/declaration", data={"agree": "on", "csrf_token": tok_})
+    no = _re.search(r"SSP\d{8}", r.text)
+    assert no, "no application number on the confirmation page"
+    row = q("SELECT a.status, l.note FROM applications a JOIN audit_log l ON l.application_id = a.id "
+            "WHERE a.mobile = %s AND l.action = 'SUBMIT'", (mobile,))
+    assert row == [("PENDING", "web form")], row
+    tok = sign_in("citizen", CITIZEN_MCP, mobile=mobile)
+    mine = Call(CITIZEN_MCP, tok["access_token"])("my_applications")
+    assert mine["applications"][0]["application_no"] == no.group(0), mine
+    return "%s submitted on the web; the assistant sees it" % no.group(0)
 
 
 def main():
@@ -420,7 +491,7 @@ def main():
     path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "results", "contract-latest.json")
     if not only:
         with open(path, "w") as fh:
-            json.dump(out, fh, indent=2)
+            json.dump(redact(out), fh, indent=2)
     print("\n%d/%d passed" % (passed, len(RESULTS)))
     sys.exit(0 if passed == len(RESULTS) else 1)
 
