@@ -1132,7 +1132,10 @@ def _mdlite(text):
 def eval_dashboard():
     runs, personas, changes, contract = _load_eval_runs()
     sel = request.args.get("run")
-    run = next((r for r in runs if r.get("run_id") == sel), runs[0] if runs else None)
+    # default: the latest complete run (re-checks of a single persona are listed but not the headline)
+    full = max((r.get("total", 0) for r in runs), default=0)
+    default = next((r for r in runs if r.get("total", 0) == full), runs[0] if runs else None)
+    run = next((r for r in runs if r.get("run_id") == sel), default)
     by_persona = {}
     if run:
         for res in run.get("results", []):
