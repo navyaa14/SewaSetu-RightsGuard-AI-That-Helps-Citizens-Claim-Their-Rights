@@ -91,6 +91,14 @@ Each fix came from reading the code and the 100k-row snapshot.
   Director's note. Applicants from other blocks are pointed to the web form or the Block Office.
   The rules are otherwise identical.
 
+After an external review, the following were also hardened:
+- CSRF tokens on every browser form;
+- secure session cookies over HTTPS;
+- no default database password;
+- single-use upload links;
+- SMS results that say whether the gateway accepted the message;
+- redaction of the public eval data.
+
 Not changed on purpose: the deemed-approval law itself, the scheme deadline (31 Oct 2026, 23:59
 IST), and the status-portal password scheme (DOB as DDMMYYYY, set by a department circular). These
 are policy decisions, listed in `DESIGN-NOTE.md`.
@@ -99,7 +107,7 @@ are policy decisions, listed in `DESIGN-NOTE.md`.
 
 ```bash
 git clone <this repo> && cd sewasetu-assistant
-cp .env.example .env        # DOMAIN, SECRET_KEY (openssl rand -hex 32), ADMIN_PASSWORD, OFFICER_ACCOUNTS
+cp .env.example .env        # DOMAIN, SECRET_KEY, DB_PASSWORD (openssl rand -hex 32), ADMIN_PASSWORD, OFFICER_ACCOUNTS
 docker compose up -d --build
 ```
 
@@ -108,15 +116,33 @@ certificate. The first boot loads the seed (about a minute), runs the migrations
 deemed-approval job, which approves the 700 seeded pending applications because their 15-day SLA
 has passed. That is the portal's own rule, applied as shipped.
 
-## Run the evals
+## Verify the deployment (run on the VM)
+
+The harness signs in through the real OAuth pages (it reads OTPs from the SMS gateway, as a person
+reads her phone) and then checks Postgres. Postgres is published on the VM's `127.0.0.1` only.
 
 ```bash
 pip install -r app/requirements.txt
-export PUBLIC_BASE_URL=https://DOMAIN CITIZEN_MCP_URL=https://DOMAIN/citizen/mcp \
-       OFFICER_MCP_URL=https://DOMAIN/officer/mcp ADMIN_PASSWORD=... DB_HOST=...   # DB access for the checks
-python eval/run_contract_tests.py                 # scripted MCP client + DB assertions
-python eval/run_agent_evals.py --attempts 2       # Claude Code (Haiku) vs invented people
+set -a; . ./.env; set +a
+export PUBLIC_BASE_URL=https://$DOMAIN CITIZEN_MCP_URL=https://$DOMAIN/citizen/mcp \
+       OFFICER_MCP_URL=https://$DOMAIN/officer/mcp DB_HOST=127.0.0.1 SECRET_KEY UPLOAD_DIR=/tmp/ss-fixtures
+python eval/run_contract_tests.py                 # 21 scripted checks
+python eval/run_agent_evals.py --attempts 2       # needs the claude CLI signed in; Haiku vs 13 people
 ```
+
+`run_contract_tests.py` covers the complete live sequence end to end: OTP sign-in, citizen MCP
+application, the row in Postgres, the officer MCP decision, the status-portal read-back, the
+original web form, CSRF, revocation and token isolation. The agent-eval officer scenarios create
+their setup cases through the portal module, so run that one from a checkout with `app/` on the
+same VM. Results land in `eval/results/` and appear on `/eval-dashboard` immediately (the folder
+is mounted read-only into the portal). Commit them.
+
+Manual check before submitting (5 minutes):
+1. `claude mcp add --transport http sewasetu https://DOMAIN/citizen/mcp`, sign in with a fresh
+   mobile, and read the OTP at `https://DOMAIN/__gateway/`. Apply with a photo.
+2. Find that number at `https://DOMAIN/status` (mobile + DOB as DDMMYYYY).
+3. `claude mcp add --transport http sewasetu-officer https://DOMAIN/officer/mcp`, sign in as the
+   district officer, and approve it. Check the admin page shows the decision under that name.
 
 Results go to `eval/results/`, which the dashboard reads. See `eval/personas.py` for the people
 and why each one exists.

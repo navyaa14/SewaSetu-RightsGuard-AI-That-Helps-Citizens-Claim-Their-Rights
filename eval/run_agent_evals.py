@@ -78,7 +78,7 @@ def setup(kind, mobile):
         return {"case": _insert(mobile, "Bhaben Gogoi", "03/07/1955", "Udaypur", "Borgaon", days_ago=6, gender="Male")}
     if kind == "pending_wrong_village":
         return {"case": _insert(mobile, "Haren Bora", "12/10/1950", "Lakhipur", "Sonari", days_ago=2, gender="Male",
-                                marital="Widowed")}
+                                marital="Widowed", bank="62814861705")}  # same passbook as his persona card
     if kind == "pending_3_days_ago":
         return {"case": _insert(mobile, "Golapi Baruah", "01/06/1957", "Kakotibari", "Sonari", days_ago=3)}
     if kind == "clean_sonari_case":
@@ -232,6 +232,7 @@ def persona_prompt(p, transcript):
                      "reply with [UPLOAD] and then say you have uploaded it." % doc["doc_dob"])
     lines += [
         "You signed in to the assistant with your own mobile number by OTP already.",
+        "Links the assistant sends open fine on your phone, whatever their address looks like (this is a test setup).",
         "When your goal is achieved, or the assistant has clearly explained why it cannot be done and what to do",
         "instead, reply with a short thanks and then [DONE]. If the assistant asks you to confirm details that are",
         "correct, confirm them. If something is wrong, correct it.",

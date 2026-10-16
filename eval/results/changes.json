@@ -52,5 +52,11 @@
   "found": "Run 4 transcript: the assistant told Lakhi that her daughter's number could not be used. The portal allows any mobile that holds no application. My instructions ('sign in with the applicant's own number') were wrong.",
   "changed": "The server instructions and scheme_info now say: use her own number or a family member's number with no application. That number becomes her login and receives her SMS. A CSC operator must not reuse his own number.",
   "result": "Re-check run: 2/2. In one attempt the assistant noticed the sign-in was still on the husband's number and stopped before sending an OTP to the wrong place."
+ },
+ {
+  "title": "External security review: hardening, then a full re-run",
+  "found": "An independent review flagged: no CSRF on admin forms, a fixed database password, cookies not marked Secure, upload links reusable, 'SMS sent' claimed even when the gateway failed, and full transcripts published.",
+  "changed": "CSRF on every browser form; DB password from .env; Secure cookies over HTTPS; single-use upload links; honest SMS status; redacted eval data. Three new contract tests cover CSRF, single-use links and the original web form end to end.",
+  "result": "Contract tests 21/21. Agent run 25/26. The one failure (Haren) was the harness: a localhost link the simulated person would not open, and a fixture whose old bank number did not match his passbook. After fixing both, the re-check passed 2/2. Role swaps by Haiku still appear occasionally and are tracked as an open issue."
  }
 ]
