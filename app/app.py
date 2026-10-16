@@ -1202,6 +1202,138 @@ def eval_dashboard_json():
     return {"runs": runs, "personas": personas, "changes": changes, "contract": contract}
 
 
+# ---------------------------------------------------------------------------
+# /demo: one public page that shows every feature of the assistant channel. Live numbers
+# come from this database (aggregates and masked events only, no names, mobiles or bank
+# details); the conversation replays are the real Claude Code (Haiku) sessions from the
+# eval runs and the recorded demo; the tool catalog is read from the MCP servers' source.
+# ---------------------------------------------------------------------------
+
+import ast as _ast  # noqa: E402
+
+_TOOL_CACHE = {}
+
+
+def _tool_catalog():
+    if _TOOL_CACHE:
+        return _TOOL_CACHE
+    for side in ("citizen", "officer"):
+        path = os.path.join(BASE_DIR, "mcp_servers", side + ".py")
+        tools = []
+        try:
+            tree = _ast.parse(open(path, encoding="utf-8").read())
+        except OSError:
+            continue
+        for node in tree.body:
+            if isinstance(node, _ast.FunctionDef) and any(
+                    isinstance(d, _ast.Call) and getattr(d.func, "attr", "") == "tool" for d in node.decorator_list):
+                doc = (_ast.get_docstring(node) or "").strip()
+                first = " ".join(doc.split("\n\n")[0].split())
+                params = [a.arg for a in node.args.args if a.arg not in ("ctx",)]
+                tools.append({"name": node.name, "params": params, "doc": first})
+        _TOOL_CACHE[side] = tools
+    return _TOOL_CACHE
+
+
+def _mask_no(no):
+    return (no[:5] + "•••" + no[-3:]) if no and len(no) > 8 else no
+
+
+@app.route("/demo")
+def demo_page():
+    runs, personas, changes, contract = _load_eval_runs()
+    full = [r for r in runs if r.get("total", 0) >= 20]
+    return render_template("demo.html", tools=_tool_catalog(), runs=list(reversed(full)), contract=contract,
+                           changes=changes,
+                           citizen_url=os.environ.get("CITIZEN_MCP_URL", ""),
+                           officer_url=os.environ.get("OFFICER_MCP_URL", ""),
+                           portal_url=os.environ.get("PUBLIC_BASE_URL", "").rstrip("/"),
+                           agent_blocks=AGENT_BLOCKS, sla=SLA_DAYS,
+                           deadline=SCHEME_DEADLINE.strftime("%d %b %Y, %I:%M %p"))
+
+
+@app.route("/demo/api/stats")
+def demo_stats():
+    conn = get_db(); cur = conn.cursor()
+    cur.execute("SELECT count(*), count(*) FILTER (WHERE status='PENDING') FROM applications")
+    total, pending = cur.fetchone()
+    cur.execute("SELECT count(DISTINCT application_id) FROM audit_log WHERE action='SUBMIT' AND note LIKE 'AI assistant%%'")
+    via_ai = cur.fetchone()[0]
+    cur.execute("SELECT count(*) FROM audit_log WHERE action IN ('APPROVED','REJECTED') AND note LIKE '%%via AI assistant%%'")
+    ai_decisions = cur.fetchone()[0]
+    cur.execute("SELECT count(*) FROM applications WHERE status='PENDING' AND submitted_at < %s",
+                (datetime.now() - timedelta(days=SLA_DAYS - 2),))
+    due48 = cur.fetchone()[0]
+    cur.execute("SELECT block, count(*) FROM applications WHERE status='PENDING' GROUP BY block ORDER BY block")
+    by_block = [{"block": b, "pending": n} for b, n in cur.fetchall()]
+    cur.execute("""SELECT l.at, l.action, l.actor, l.note, a.application_no, a.block FROM audit_log l
+                   JOIN applications a ON a.id = l.application_id
+                   WHERE l.at > now() - interval '30 days' AND l.actor <> 'system:rtps-cron'
+                   ORDER BY l.at DESC LIMIT 14""")
+    feed = []
+    for at, action, actor, note, no, block in cur.fetchall():
+        note = note or ""
+        via = "AI assistant" if ("AI assistant" in note) else ("web form" if "web" in note else "portal")
+        if actor.startswith("applicant:"):
+            who = "Applicant (OTP-verified)"
+        elif actor.startswith("admin:"):
+            off = get_officer(actor.split(":", 1)[1])
+            who = off["full_name"] if off else "Block officer"
+        else:
+            who = "System"
+        feed.append({"at": at.strftime("%d %b, %H:%M"), "action": action, "who": who, "via": via,
+                     "app": _mask_no(no), "block": block})
+    cur.execute("""SELECT a.application_no, a.block, a.submitted_at, EXISTS (SELECT 1 FROM audit_log l
+                   WHERE l.application_id=a.id AND l.action='SUBMIT' AND l.note LIKE 'AI assistant%%')
+                   FROM applications a WHERE a.status='PENDING' ORDER BY a.submitted_at ASC LIMIT 6""")
+    clocks = []
+    for no, block, sub, is_ai in cur.fetchall():
+        due = sub + timedelta(days=SLA_DAYS)
+        total_s = SLA_DAYS * 86400.0
+        left = max(0.0, (due - datetime.now()).total_seconds())
+        clocks.append({"app": _mask_no(no), "block": block, "submitted": sub.strftime("%d %b"), "via_ai": is_ai,
+                       "due": due.strftime("%d %b %Y"), "days_left": round(left / 86400, 1),
+                       "elapsed": round(1 - left / total_s, 3)})
+    cur.close(); conn.close()
+    return {"total": total, "pending": pending, "via_ai": via_ai, "ai_decisions": ai_decisions,
+            "due48": due48, "by_block": by_block, "feed": feed, "clocks": clocks,
+            "window": deadline_remaining()}
+
+
+@app.route("/demo/api/replays")
+def demo_replays():
+    runs, personas, changes, contract = _load_eval_runs()
+    pmeta = {p["id"]: p for p in personas}
+    out = []
+    try:
+        with open(os.path.join(EVAL_DIR, "showcase.json"), encoding="utf-8") as fh:
+            for item in _json.load(fh):
+                item["source"] = "Recorded demo session"
+                out.append(item)
+    except (OSError, ValueError):
+        pass
+    full = [r for r in runs if r.get("total", 0) >= 20]
+    best = max(full, key=lambda r: (r["passed"] / max(r["total"], 1), r["run_id"])) if full else None
+    if best:
+        seen = set()
+        for res in best["results"]:
+            if res["persona"] in seen or not res.get("passed"):
+                continue
+            seen.add(res["persona"])
+            meta = pmeta.get(res["persona"], {})
+            tr = []
+            for t in res["transcript"]:
+                tr.append({"role": t["role"], "text": t["text"],
+                           "tools": [{"name": x["name"].split("__")[-1], "input": x.get("input", {}),
+                                      "result": (x.get("result") or "")[:1200]}
+                                     for x in (t.get("tools") or []) if x["name"] != "ToolSearch"]})
+            out.append({"id": res["persona"], "name": meta.get("name", res["persona"]), "side": meta.get("side"),
+                        "age": meta.get("age"), "village": meta.get("village"), "block": meta.get("block"),
+                        "why": meta.get("why"), "transcript": tr, "checks": res["checks"], "passed": res["passed"],
+                        "source": "Eval run %s (Claude Code + Haiku)" % best["run_id"]})
+    return {"replays": out}
+
+
 from oauth import oauth as _oauth_blueprint   # noqa: E402  (needs the definitions above)
 app.register_blueprint(_oauth_blueprint)
 

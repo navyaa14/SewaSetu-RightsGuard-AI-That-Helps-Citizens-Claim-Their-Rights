@@ -1,155 +1,162 @@
 {
- "kind": "contract",
- "ran_at": "2026-10-16T11:34:48",
- "passed": 21,
- "total": 21,
- "tests": [
-  {
-   "name": "Unauthenticated call is challenged with discovery metadata",
-   "why": "Claude Code finds the sign-in page only through the 401 + resource metadata",
-   "passed": true,
-   "detail": "401 + RFC 9728 metadata on both endpoints",
-   "seconds": 0.0
-  },
-  {
-   "name": "Officer endpoint without a scope still gets the officer sign-in",
-   "why": "if a client omits scope, the portal infers it from the resource instead of defaulting to citizen OTP",
-   "passed": true,
-   "detail": "scope inferred: officer",
-   "seconds": 0.1
-  },
-  {
-   "name": "Citizen sees no officer tools, and tokens do not cross endpoints",
-   "why": "Brief: a citizen's assistant should not even see the officer's tools",
-   "passed": true,
-   "detail": "7 citizen tools; citizen->officer 401; officer->citizen rejected; wrong audience rejected",
-   "seconds": 6.0
-  },
-  {
-   "name": "Ending a sign-in stops the assistant immediately",
-   "why": "shared phones and kiosks: 'end this sign-in' must not leave a 20-minute window",
-   "passed": true,
-   "detail": "access token refused right after revocation",
-   "seconds": 2.3
-  },
-  {
-   "name": "Kamala applies end to end; visible on the portal like a web application",
-   "why": "the core job: a real application, same rules, same records, both places",
-   "passed": true,
-   "detail": "SSP26137210",
-   "seconds": 2.0
-  },
-  {
-   "name": "Retried and concurrent submits create exactly one application",
-   "why": "small models retry tool calls; the database now enforces one active application per mobile",
-   "passed": true,
-   "detail": "1 row after 1+1 sequential and 6 parallel submits",
-   "seconds": 9.9
-  },
-  {
-   "name": "Under-60 applicant is refused with the date she becomes eligible",
-   "why": "never get anyone a pension the counter would not",
-   "passed": true,
-   "detail": "25 Oct 2026 (before the window closes on 31 Oct 2026)",
-   "seconds": 4.7
-  },
-  {
-   "name": "Unknown date of birth is never guessed",
-   "why": "elderly applicants often know only their age; the assistant must ask for the document",
-   "passed": true,
-   "detail": "date of birth not saved: an exact date of birth is needed, as written on her age proof (birth certificate, school certificate or Voter ID); an age or year is not enough",
-   "seconds": 1.6
-  },
-  {
-   "name": "Old United Bank IFSC is blocked with a useful hint",
-   "why": "16,576 seeded records carry UTBI0PUR2819, which the portal's own validator rejects",
-   "passed": true,
-   "detail": "IFSC refused, merger hint given, block inferred from village",
-   "seconds": 2.3
-  },
-  {
-   "name": "Second person on a shared phone cannot use the same mobile",
-   "why": "couples share one phone; one active application per mobile is the portal's rule",
-   "passed": true,
-   "detail": "second application refused; explanation given",
-   "seconds": 5.0
-  },
-  {
-   "name": "Withdraw needs the number twice; then she can apply afresh",
-   "why": "irreversible actions need explicit confirmation; withdrawal works like the status portal",
-   "passed": true,
-   "detail": "SSP26668994 withdrawn, SSP26858792 submitted",
-   "seconds": 5.3
-  },
-  {
-   "name": "A citizen cannot touch someone else's application",
-   "why": "identity comes from the OTP-verified token, never from tool arguments",
-   "passed": true,
-   "detail": "refused",
-   "seconds": 3.6
-  },
-  {
-   "name": "Upload link rejects fake files and expired links",
-   "why": "the age proof is the main evidence; uploads are validated by content, not by name",
-   "passed": true,
-   "detail": "fake JPEG refused; unknown link 410",
-   "seconds": 2.3
-  },
-  {
-   "name": "Block officer sees only her block and decides against her own name",
-   "why": "Director: she sees what is waiting for her and decides for a reason recorded against her name",
-   "passed": true,
-   "detail": "SSP26996556 approved by Rina Gogoi; Khelua officer could not see it",
-   "seconds": 3.8
-  },
-  {
-   "name": "Approval of an under-60 applicant is refused on every channel",
-   "why": "historic data has 2,585 approvals of people under 60 when they applied; the rule now holds",
-   "passed": true,
-   "detail": "flagged on review; approval refused; rejection with UNDER_AGE recorded",
-   "seconds": 0.3
-  },
-  {
-   "name": "Duplicate beneficiary is flagged for the officer",
-   "why": "398 people hold two pensions under different mobiles; officers already reject 'duplicate of an earlier beneficiary'",
-   "passed": true,
-   "detail": "flagged; approval without a note refused; rejected as duplicate",
-   "seconds": 4.7
-  },
-  {
-   "name": "Instructions hidden in an applicant's name are treated as data",
-   "why": "officers' assistants read applicant text; it must not steer them",
-   "passed": true,
-   "detail": "text isolated under applicant_entered; nothing decided by the tool",
-   "seconds": 4.5
-  },
-  {
-   "name": "Program tokens can read but not decide, and can be revoked",
-   "why": "an unattended program must never approve a pension; README admits revocation was missing",
-   "passed": true,
-   "detail": "read ok; decide refused; 401 after revocation",
-   "seconds": 2.2
-  },
-  {
-   "name": "Officer actions cannot be forged from another site (CSRF)",
-   "why": "audit finding: admin POST actions had no CSRF protection; a signed-in officer visiting a hostile page could approve",
-   "passed": true,
-   "detail": "forged and guessed tokens refused (400); real form works",
-   "seconds": 4.1
-  },
-  {
-   "name": "An upload link stores exactly one document",
-   "why": "audit finding: used_at was recorded but not enforced; a leaked link could replace the age proof later",
-   "passed": true,
-   "detail": "second upload on the same link refused (410); a fresh link works",
-   "seconds": 2.4
-  },
-  {
-   "name": "The original web form still works end to end, and shows up for the assistant",
-   "why": "both channels must keep working and see the same records (CSRF must not break the counter's own flow)",
-   "passed": true,
-   "detail": "SSP26146334 submitted on the web; the assistant sees it",
-   "seconds": 5.2
-  }
- ]
+  "kind": "contract",
+  "ran_at": "2026-10-16T12:43:33",
+  "passed": 22,
+  "total": 22,
+  "tests": [
+    {
+      "name": "Unauthenticated call is challenged with discovery metadata",
+      "why": "Claude Code finds the sign-in page only through the 401 + resource metadata",
+      "passed": true,
+      "detail": "401 + RFC 9728 metadata on both endpoints",
+      "seconds": 0.0
+    },
+    {
+      "name": "Officer endpoint without a scope still gets the officer sign-in",
+      "why": "if a client omits scope, the portal infers it from the resource instead of defaulting to citizen OTP",
+      "passed": true,
+      "detail": "scope inferred: officer",
+      "seconds": 0.1
+    },
+    {
+      "name": "Citizen sees no officer tools, and tokens do not cross endpoints",
+      "why": "Brief: a citizen's assistant should not even see the officer's tools",
+      "passed": true,
+      "detail": "7 citizen tools; citizen->officer 401; officer->citizen rejected; wrong audience rejected",
+      "seconds": 8.2
+    },
+    {
+      "name": "Ending a sign-in stops the assistant immediately",
+      "why": "shared phones and kiosks: 'end this sign-in' must not leave a 20-minute window",
+      "passed": true,
+      "detail": "access token refused right after revocation",
+      "seconds": 2.3
+    },
+    {
+      "name": "Kamala applies end to end; visible on the portal like a web application",
+      "why": "the core job: a real application, same rules, same records, both places",
+      "passed": true,
+      "detail": "SSP26546875",
+      "seconds": 4.1
+    },
+    {
+      "name": "Retried and concurrent submits create exactly one application",
+      "why": "small models retry tool calls; the database now enforces one active application per mobile",
+      "passed": true,
+      "detail": "1 row after 1+1 sequential and 6 parallel submits",
+      "seconds": 5.5
+    },
+    {
+      "name": "Under-60 applicant is refused with the date she becomes eligible",
+      "why": "never get anyone a pension the counter would not",
+      "passed": true,
+      "detail": "25 Oct 2026 (before the window closes on 31 Oct 2026)",
+      "seconds": 1.9
+    },
+    {
+      "name": "Unknown date of birth is never guessed",
+      "why": "elderly applicants often know only their age; the assistant must ask for the document",
+      "passed": true,
+      "detail": "date of birth not saved: an exact date of birth is needed, as written on her age proof (birth certificate, school certificate or Voter ID); an age or year is not enough",
+      "seconds": 2.3
+    },
+    {
+      "name": "Old United Bank IFSC is blocked with a useful hint",
+      "why": "16,576 seeded records carry UTBI0PUR2819, which the portal's own validator rejects",
+      "passed": true,
+      "detail": "IFSC refused, merger hint given, block inferred from village",
+      "seconds": 1.7
+    },
+    {
+      "name": "Second person on a shared phone cannot use the same mobile",
+      "why": "couples share one phone; one active application per mobile is the portal's rule",
+      "passed": true,
+      "detail": "second application refused; explanation given",
+      "seconds": 4.8
+    },
+    {
+      "name": "Withdraw needs the number twice; then she can apply afresh",
+      "why": "irreversible actions need explicit confirmation; withdrawal works like the status portal",
+      "passed": true,
+      "detail": "SSP26901185 withdrawn, SSP26969034 submitted",
+      "seconds": 5.3
+    },
+    {
+      "name": "A citizen cannot touch someone else's application",
+      "why": "identity comes from the OTP-verified token, never from tool arguments",
+      "passed": true,
+      "detail": "refused",
+      "seconds": 4.9
+    },
+    {
+      "name": "Upload link rejects fake files and expired links",
+      "why": "the age proof is the main evidence; uploads are validated by content, not by name",
+      "passed": true,
+      "detail": "fake JPEG refused; unknown link 410",
+      "seconds": 1.6
+    },
+    {
+      "name": "Block officer sees only her block and decides against her own name",
+      "why": "Director: she sees what is waiting for her and decides for a reason recorded against her name",
+      "passed": true,
+      "detail": "SSP26907578 approved by Rina Gogoi; Khelua officer could not see it",
+      "seconds": 5.1
+    },
+    {
+      "name": "Approval of an under-60 applicant is refused on every channel",
+      "why": "historic data has 2,585 approvals of people under 60 when they applied; the rule now holds",
+      "passed": true,
+      "detail": "flagged on review; approval refused; rejection with UNDER_AGE recorded",
+      "seconds": 0.4
+    },
+    {
+      "name": "Duplicate beneficiary is flagged for the officer",
+      "why": "398 people hold two pensions under different mobiles; officers already reject 'duplicate of an earlier beneficiary'",
+      "passed": true,
+      "detail": "flagged; approval without a note refused; rejected as duplicate",
+      "seconds": 2.5
+    },
+    {
+      "name": "Instructions hidden in an applicant's name are treated as data",
+      "why": "officers' assistants read applicant text; it must not steer them",
+      "passed": true,
+      "detail": "text isolated under applicant_entered; nothing decided by the tool",
+      "seconds": 4.4
+    },
+    {
+      "name": "Program tokens can read but not decide, and can be revoked",
+      "why": "an unattended program must never approve a pension; README admits revocation was missing",
+      "passed": true,
+      "detail": "read ok; decide refused; 401 after revocation",
+      "seconds": 2.8
+    },
+    {
+      "name": "Officer actions cannot be forged from another site (CSRF)",
+      "why": "audit finding: admin POST actions had no CSRF protection; a signed-in officer visiting a hostile page could approve",
+      "passed": true,
+      "detail": "forged and guessed tokens refused (400); real form works",
+      "seconds": 4.7
+    },
+    {
+      "name": "An upload link stores exactly one document",
+      "why": "audit finding: used_at was recorded but not enforced; a leaked link could replace the age proof later",
+      "passed": true,
+      "detail": "second upload on the same link refused (410); a fresh link works",
+      "seconds": 2.4
+    },
+    {
+      "name": "The original web form still works end to end, and shows up for the assistant",
+      "why": "both channels must keep working and see the same records (CSRF must not break the counter's own flow)",
+      "passed": true,
+      "detail": "SSP26623806 submitted on the web; the assistant sees it",
+      "seconds": 5.9
+    },
+    {
+      "name": "The public /demo page shows no personal data",
+      "why": "the showcase is public: aggregates and masked events only, replays redacted",
+      "passed": true,
+      "detail": "no mobile, account, token or upload link in the page or its APIs",
+      "seconds": 0.1
+    }
+  ]
 }

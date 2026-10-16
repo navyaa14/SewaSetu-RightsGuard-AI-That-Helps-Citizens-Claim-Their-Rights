@@ -480,6 +480,23 @@ def t_web_form():
     return "%s submitted on the web; the assistant sees it" % no.group(0)
 
 
+@test("The public /demo page shows no personal data",
+      "the showcase is public: aggregates and masked events only, replays redacted")
+def t_demo_privacy():
+    import re as _re
+    page = requests.get(PORTAL + "/demo")
+    assert page.status_code == 200 and "Real conversations, replayed" in page.text
+    stats = requests.get(PORTAL + "/demo/api/stats").text
+    replays = requests.get(PORTAL + "/demo/api/replays").text
+    for name, blob in (("stats", stats), ("replays", replays)):
+        leaks = _re.findall(r"(?<![\dA-Za-z])\d{9,18}(?!\d)", blob)
+        assert not leaks, "%s exposes long numbers: %s" % (name, leaks[:3])
+        assert "eyJ" not in blob and "/u/" not in blob.replace("/u/[link-token]", ""), name + " exposes a token or link"
+    mobiles = [m for (m,) in q("SELECT mobile FROM applications ORDER BY submitted_at DESC LIMIT 20")]
+    assert not any(m in stats or m in replays for m in mobiles)
+    return "no mobile, account, token or upload link in the page or its APIs"
+
+
 def main():
     only = sys.argv[1:]
     for t in TESTS:

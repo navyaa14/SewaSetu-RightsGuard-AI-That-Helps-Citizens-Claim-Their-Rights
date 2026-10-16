@@ -1,0 +1,238 @@
+[
+ {
+  "id": "showcase-kamala",
+  "name": "Kamala Das, by her grandson on the bus",
+  "side": "citizen",
+  "age": 74,
+  "village": "Lakhipur",
+  "block": "Sonari",
+  "why": "The Director's story, end to end: sign-in by OTP, details in one message, voter ID checked and uploaded, read-back, submit.",
+  "transcript": [
+   {
+    "role": "person",
+    "text": "hi, my nani needs the old age pension. can you apply for her? we signed in with her number"
+   },
+   {
+    "role": "assistant",
+    "text": "I'll start by loading the Sewa Setu tools and checking whether she already has an application.\n\nI've checked the portal. Nani doesn't have a pension application on this number yet, so we can start one. The application window is open until **31 October 2026, 11:59 PM IST**.\n\nI need these details from her documents:\n\n1. **Full name**, exactly as on her age proof\n2. **Date of birth**, as on her age proof\n3. **Gender** (Male, Female or Other) and **marital status** (Married, Unmarried or Widowed). If she is widowed, I also need her late husband's name.\n4. **Village or town**, and her **block**: Sonari, Rajapara, Dhemaji Pathar, Borgaon, Namti or Khelua\n5. **Bank account number** and **IFSC code**, from her passbook\n6. **Age proof**: a birth certificate, school leaving certificate or Voter ID (JPG, PNG or PDF, up to 5 MB). I can give you an upload link to open on a phone, or I can upload the file if you can send it to me here.\n\nI won't guess any of these. Once I have them, I'll save them and read everything back. Nani has to give a clear yes before I submit, since the application is made in her name. The mobile number you signed in with, ending in 2378, will be her login and will receive her SMS, so it should be the number she wants to use for this.",
+    "tools": [
+     {
+      "name": "my_applications",
+      "input": {},
+      "result": "{\n  \"mobile\": \"XXXXXX2378\",\n  \"applications\": [],\n  \"message\": \"No application has been made with this mobile number yet.\",\n  \"say_to_applicant\": \"There is no pension application with this mobile number yet.\"\n}"
+     },
+     {
+      "name": "scheme_info",
+      "input": {},
+      "result": "{\n  \"scheme\": \"Old Age Pension Scheme, Department of Social Welfare, Government of Purvanchal\",\n  \"amount\": \"Rs 250 per month, paid by DBT into the applicant's own bank account\",\n  \"who_can_apply\": \"residents of Purvanchal aged 60 or above on the day of applying\",\n  \"one_application\": \"one active application per mobile number. Two people cannot hold applications on the same number. Someone without a phone of her own can use a family member's number that has no application; it becomes her login and receives her SMS\",\n  \"documents\": [\n    \"one age proof: birth certificate, school leaving certificate or Voter ID (photo or PDF, up to 5 MB)\",\n    \"bank account number and IFSC (from the passbook)\"\n  ],\n  \"application_window\": {\n    \"closes\": \"31 October 2026, 11:59 PM IST\",\n    \"open\": true,\n    \"hours_left\": 372\n  },\n  \"processing\": \"a block officer decides within 15 days; if not, the application stands approved automatically (Purvanchal Right to Public Services Act)\",\n  \"blocks\": [\n    \"Sonari\",\n    \"Rajapara\",\n    \"Dhemaji Pathar\",\n    \"Borgaon\",\n    \"Namti\",\n    \"Khelua\"\n  ],\n  \"blocks_served_by_assistant\": [\n    \"Sonari\",\n    \"Rajapara\",\n    \"Dhemaji Pathar\",\n    \"Borgaon\",\n    \"Namti\",\n    \"Khelua\"\n  ],\n  \"other_blocks\": \"applicants from other blocks apply on the portal website or at the Block Development Office; same scheme, same rules\",\n  \"signed_in_mobile\": \"XXXXXX2378\",\n  \"status_portal\": \"http://localhost:8000/status (mobile number + date of birth as DDMMYYYY)\",\n  \"help\""
+     }
+    ]
+   },
+   {
+    "role": "person",
+    "text": "Kamala Das, born 12/03/1952, female, widow (husband late Prafulla Das). village Lakhipur, Sonari block. bank account XXXXXXX2917, IFSC SBIN0003077. her voter id photo is kamala_voter_id.jpg in this folder"
+   },
+   {
+    "role": "assistant",
+    "text": "The details are saved. Next is the Voter ID photo. I'll look for the file in the working folder.\n\nThe file is there. Before uploading it, I'll look at it to check that the name and date of birth match what she gave.\n\nThe name and date of birth on the card match what she gave. I'll upload it to the link the portal returned.\n\nEverything is saved and the age proof is uploaded. I have not submitted the application yet, because it needs Nani's own yes first.\n\nPlease read these back to her in her language:\n\n- **Name:** Kamala Das\n- **Date of birth:** 12 March 1952\n- **Gender and status:** Female, widowed (late husband Prafulla Das)\n- **Village and block:** Lakhipur, Sonari\n- **Bank account:** XXXXXXX2917\n- **IFSC:** SBIN0003077\n- **Age proof:** Voter ID received\n\nShe also has to agree to this declaration: *\"I hereby declare that the information furnished above is true to the best of my knowledge and belief. I understand that furnishing false information is punishable under applicable law and will result in cancellation of pension.\"*\n\nPlease check the bank account number and IFSC against her passbook before she agrees. Those came from you, not from the passbook. If she says yes, tell me and I'll submit.\n\nThe application window closes on 31 October 2026, 11:59 PM IST, and the block officer decides within 15 days of submission. The pension is Rs 250 a month, paid into her own bank account. Once submitted, the portal's status page is at http://localhost:8000/status, using her mobile number and date of birth as DDMMYYYY.",
+    "tools": [
+     {
+      "name": "save_application_details",
+      "input": {
+       "applicant_name": "Kamala Das",
+       "date_of_birth": "12/03/1952",
+       "gender": "Female",
+       "marital_status": "Widowed",
+       "late_husband_name": "Prafulla Das",
+       "village": "Lakhipur",
+       "block": "Sonari",
+       "bank_account_number": "XXXXXXX2917",
+       "ifsc": "SBIN0003077"
+      },
+      "result": "{\n  \"saved_for_mobile\": \"XXXXXX2378\",\n  \"details\": {\n    \"applicant_name\": \"Kamala Das\",\n    \"date_of_birth\": \"12/03/1952\",\n    \"gender\": \"Female\",\n    \"marital_status\": \"Widowed\",\n    \"late_husband_name\": \"Prafulla Das\",\n    \"village\": \"Lakhipur\",\n    \"block\": \"Sonari\",\n    \"bank_account_number\": \"XXXXXXX2917\",\n    \"ifsc\": \"SBIN0003077\"\n  },\n  \"age_proof\": \"not uploaded: nothing has arrived through any upload link for this mobile. If she says she uploaded, the upload did not complete (link expired, or Upload not pressed): give a fresh link, or run the curl command if you have the file\",\n  \"missing\": [],\n  \"problems\": [],\n  \"age_proof_upload\": {\n    \"upload_link\": \"http://localhost:8000/u/[link-token]\",\n    \"valid_for_minutes\": 30,\n    \"one_use\": \"Each link stores one document. To replace a document, get a new link.\",\n    \"how\": \"Send her this link: she (or a family member) opens it on the phone and takes a photo of her birth certificate, school leaving certificate or Voter ID. If you can run shell commands and have the file, run the curl command instead.\",\n    \"curl\": \"curl -sS -H \\\"Accept: application/json\\\" -F \\\"document=@/path/to/age-proof.jpg\\\" http://localhost:8000/u/[link-token]\"\n  },\n  \"ready_to_submit\": false,\n  \"application_window\": {\n    \"closes\": \"31 October 2026, 11:59 PM IST\",\n    \"open\": true,\n    \"hours_left\": 372\n  },\n  \"next_step\": \"get her age proof uploaded with the link\",\n  \"notes\": [],\n  \"say_to_applicant\": \"I have"
+     },
+     {
+      "name": "Bash",
+      "input": {
+       "command": "ls -la /home/claude/video/cc-citizen/ 2>/dev/null; ls -la /mnt/user-data/uploads/ 2>/dev/null; find / -iname \"kamala_voter_id*\" 2>/dev/null | head",
+       "description": "Look for the Voter ID photo file"
+      },
+      "result": "This Bash command contains multiple operations. The following part requires approval: ls -la /home/claude/video/cc-citizen/ ; ls -la /mnt/user-data/uploads/ ; find / -iname \"kamala_voter_id*\""
+     },
+     {
+      "name": "Bash",
+      "input": {
+       "command": "ls -la /home/claude/video/cc-citizen/",
+       "description": "List files in the working directory"
+      },
+      "result": "total 60\ndrwxr-xr-x 2 root root  4096 Oct 16 11:56 .\ndrwxr-xr-x 6 root root  4096 Oct 16 11:56 ..\n-rw-r--r-- 1 root root 47166 Oct 16 11:56 kamala_voter_id.jpg\n-rw-r--r-- 1 root root   907 Oct 16 11:56 mcp.json"
+     },
+     {
+      "name": "Read",
+      "input": {
+       "file_path": "/home/claude/video/cc-citizen/kamala_voter_id.jpg"
+      },
+      "result": "[image]"
+     },
+     {
+      "name": "Bash",
+      "input": {
+       "command": "curl -sS -H \"Accept: application/json\" -F \"document=@/home/claude/video/cc-citizen/kamala_voter_id.jpg\" http://localhost:8000/u/[link-token]",
+       "description": "Upload Voter ID photo to the age proof link"
+      },
+      "result": "{\"message\":\"Age proof received for mobile XXXXXX2378. Go back to the assistant and say it is uploaded.\",\"ok\":true}"
+     },
+     {
+      "name": "save_application_details",
+      "input": {},
+      "result": "{\n  \"saved_for_mobile\": \"XXXXXX2378\",\n  \"details\": {\n    \"applicant_name\": \"Kamala Das\",\n    \"date_of_birth\": \"12/03/1952\",\n    \"gender\": \"Female\",\n    \"marital_status\": \"Widowed\",\n    \"late_husband_name\": \"Prafulla Das\",\n    \"village\": \"Lakhipur\",\n    \"block\": \"Sonari\",\n    \"bank_account_number\": \"XXXXXXX2917\",\n    \"ifsc\": \"SBIN0003077\"\n  },\n  \"age_proof\": \"uploaded (kamala_voter_id.jpg)\",\n  \"missing\": [],\n  \"problems\": [],\n  \"ready_to_submit\": true,\n  \"application_window\": {\n    \"closes\": \"31 October 2026, 11:59 PM IST\",\n    \"open\": true,\n    \"hours_left\": 372\n  },\n  \"next_step\": \"Read these details back to her slowly (name, date of birth, village, block, bank account, IFSC) and the declaration. If she says yes, call submit_application with confirmed=true.\",\n  \"declaration\": \"I hereby declare that the information furnished above is true to the best of my knowledge and belief. I understand that furnishing false information is punishable under applicable law and will result in cancellation of pension.\",\n  \"notes\": [],\n  \"say_to_applicant\": \"I have everything. Please check: name Kamala Das; date of birth 12/03/1952; Female, Widowed; village Lakhipur, Sonari block; bank account XXXXXXX2917, IFSC SBIN0003077; age proof received. If all of this is correct and you agree to the declaration, shall I submit the application?\"\n}"
+     }
+    ]
+   },
+   {
+    "role": "person",
+    "text": "yes everything is correct, nani agrees to the declaration. please submit"
+   },
+   {
+    "role": "assistant",
+    "text": "Nani's old age pension application has been submitted.\n\n- **Application number:** SSP26838227\n- **Status:** Pending, waiting for the Sonari block officer's decision\n- **Decision due by:** 31 October 2026. If nobody decides by then, the application is approved automatically.\n- **SMS:** The portal has sent the application number to her phone, ending in 2378.\n\nPlease write down the application number and keep it safe. To check the status, use http://localhost:8000/status with her mobile number and her date of birth as DDMMYYYY (12031952). You can also ask me and I'll check it for you.",
+    "tools": [
+     {
+      "name": "submit_application",
+      "input": {
+       "confirmed": true
+      },
+      "result": "{\n  \"submitted\": true,\n  \"application_no\": \"SSP26838227\",\n  \"status\": \"PENDING\",\n  \"status_meaning\": \"submitted, waiting for the block officer's decision\",\n  \"rights_clock\": {\n    \"submitted_on\": \"16 Oct 2026\",\n    \"decision_due_by\": \"31 Oct 2026\",\n    \"days_left_for_decision\": 15,\n    \"if_no_decision\": \"If the block officer does not decide by 31 Oct 2026, the application stands approved automatically (deemed approval, Purvanchal RTPS Act) in the nightly run after that date.\"\n  },\n  \"sms\": \"An SMS with the application number was handed to the SMS gateway for her mobile.\",\n  \"track\": \"Ask this assistant, or use http://localhost:8000/status with her mobile number and her date of birth as DDMMYYYY.\",\n  \"message\": \"Application SSP26838227 submitted. Please note this number.\",\n  \"say_to_applicant\": \"Your pension application is submitted. Your application number is SSP26838227; please keep it safe. The block officer should decide by 31 Oct 2026. If nobody decides by then, it is approved automatically.\"\n}"
+     }
+    ]
+   },
+   {
+    "role": "person",
+    "text": "thanks! when will she hear back?"
+   },
+   {
+    "role": "assistant",
+    "text": "She should hear back within 15 days, by **31 October 2026**. The block officer is expected to decide before then. If nobody decides by that date, the application is approved automatically in the nightly run after it.\n\nShe'll get an SMS with the application number on her phone, ending in 2378. To check progress at any time, use http://localhost:8000/status with her mobile number and date of birth as DDMMYYYY, or ask me to check.",
+    "tools": []
+   }
+  ],
+  "checks": [
+   {
+    "check": "one_application",
+    "passed": true,
+    "detail": "SSP26838227 created, PENDING, audit 'AI assistant (Claude Code)'"
+   }
+  ],
+  "passed": true
+ },
+ {
+  "id": "showcase-rina",
+  "name": "Rina Gogoi, Block Officer, Sonari",
+  "side": "officer",
+  "block": "Sonari",
+  "why": "The officer's side: queue by deadline, age proof checked, approve under her name, duplicate pensioner rejected with a reason.",
+  "transcript": [
+   {
+    "role": "person",
+    "text": "What's waiting for me today? Newest first."
+   },
+   {
+    "role": "assistant",
+    "text": "You have **4 pending applications** in Sonari, newest first. One is due for deemed approval within 48 hours.\n\n1. **Kamala Das** (SSP26838227), 74, Lakhipur. Submitted 16 Oct 2026, 11:56. Deemed approval 31 Oct. No flags.\n2. **Haren Bora** (SSP26828714), 82, Lakhipur. Submitted 12 Oct 2026, 11:53. Deemed approval 27 Oct. **Flag: possible duplicate beneficiary.** Check this before deciding.\n3. **Junali Hazarika** (SSP26327979), 74, Namdang. Submitted 7 Oct 2026, 11:53. Deemed approval 22 Oct. No flags.\n4. **Bhabesh Rajkhowa** (SSP26510305), 70, Kakotibari. Submitted 3 Oct 2026, 11:53. **Deemed approval 18 Oct, about 48 hours from now.** Flag: deemed approval soon.\n\nBhabesh Rajkhowa's case is the most urgent. If you want to decide it yourself, tell me your decision and I'll record it. I can also pull the full case for any of these, starting with Haren Bora's duplicate flag.",
+    "tools": [
+     {
+      "name": "pending_queue",
+      "input": {
+       "sort": "newest",
+       "limit": 20
+      },
+      "result": "{\n  \"officer\": \"Rina Gogoi\",\n  \"jurisdiction\": \"Sonari\",\n  \"pending_total\": 4,\n  \"due_for_deemed_approval_within_48h\": 1,\n  \"showing\": 4,\n  \"sort\": \"newest\",\n  \"cases\": [\n    {\n      \"application_no\": \"SSP26838227\",\n      \"applicant_name\": \"Kamala Das\",\n      \"age_at_application\": 74,\n      \"village\": \"Lakhipur\",\n      \"block\": \"Sonari\",\n      \"status\": \"PENDING\",\n      \"submitted\": \"2026-10-16 11:56\",\n      \"deemed_approval_after\": \"2026-10-31 11:56\",\n      \"hours_left_before_deemed_approval\": 360.0,\n      \"flags\": [],\n      \"approval_blocked\": false\n    },\n    {\n      \"application_no\": \"SSP26828714\",\n      \"applicant_name\": \"Haren Bora\",\n      \"age_at_application\": 82,\n      \"village\": \"Lakhipur\",\n      \"block\": \"Sonari\",\n      \"status\": \"PENDING\",\n      \"submitted\": \"2026-10-12 11:53\",\n      \"deemed_approval_after\": \"2026-10-27 11:53\",\n      \"hours_left_before_deemed_approval\": 263.9,\n      \"flags\": [\n        \"POSSIBLE_DUPLICATE_BENEFICIARY\"\n      ],\n      \"approval_blocked\": false\n    },\n    {\n      \"application_no\": \"SSP26327979\",\n      \"applicant_name\": \"Junali Hazarika\",\n      \"age_at_application\": 74,\n      \"village\": \"Namdang\",\n      \"block\": \"Sonari\",\n      \"status\": \"PENDING\",\n      \"submitted\": \"2026-10-07 11:53\",\n      \"deemed_approval_after\": \"2026-10-22 11:53\",\n      \"hours_left_before_deemed_approval\": 143.9,\n      \"flags\": [],\n      \"approval_blocked\": false\n    },\n    {\n      \"application_no\": \"SSP26510305\",\n      \"applicant_name\": \"Bhabesh Rajkhowa\",\n      "
+     }
+    ]
+   },
+   {
+    "role": "person",
+    "text": "Open Kamala Das's application and check it properly, including her age proof."
+   },
+   {
+    "role": "assistant",
+    "text": "Kamala Das's application is clean on the points I can check. Nothing is flagged, and the age proof matches what she entered.\n\n**Application SSP26838227**, Lakhipur, Sonari block. Submitted 16 Oct 2026, 11:56. Deemed approval 31 Oct 2026, 11:56.\n\n- **Name:** Kamala Das, matches the age-proof card.\n- **Date of birth:** 12/03/1952, matches the card. Age at application is 74, which is correct for that date.\n- **Gender and status:** Female, widowed. Late husband: Prafulla Das.\n- **Age proof:** A State Election Office Elector Photo Identity Card, No. PVL3607347. The image is legible. The name, DOB and photo are present, and the address reads \"as per electoral roll.\"\n- **Bank and mobile:** Account and mobile are masked in the record (account ends 2917, IFSC SBIN0003077, mobile ends 2378). The record does not show the account holder's name, so I could not check the \"bank not in applicant's name\" rule. You may need the portal for that.\n- **Duplicates:** No duplicate-beneficiary flag.\n- **Checks:** One informational note only. The application was submitted through an AI assistant with an OTP-verified mobile. The audit trail shows the same.\n\nTwo things to keep in mind. This age proof is a voter ID, so confirm it is an accepted document under the scheme rules. I don't have that list. Also, the account holder name is the one check I could not complete.\n\nThe decision is yours. Do you want to approve, reject (and if so, which reason), or leave it for now? If you leave it, it is deemed approved on 31 Oct.",
+    "tools": [
+     {
+      "name": "review_application",
+      "input": {
+       "application_no": "SSP26838227",
+       "include_document": true
+      },
+      "result": "{\n  \"application_no\": \"SSP26838227\",\n  \"status\": \"PENDING\",\n  \"block\": \"Sonari\",\n  \"applicant_entered\": {\n    \"name\": \"Kamala Das\",\n    \"village\": \"Lakhipur\",\n    \"late_husband_name\": \"Prafulla Das\"\n  },\n  \"date_of_birth\": \"12/03/1952\",\n  \"age_at_application\": 74,\n  \"age_today\": 74,\n  \"gender\": \"Female\",\n  \"marital_status\": \"Widowed\",\n  \"mobile\": \"XXXXXX2378\",\n  \"bank_account\": \"XXXXXXX2917\",\n  \"ifsc\": \"SBIN0003077\",\n  \"submitted\": \"2026-10-16 11:56\",\n  \"deemed_approval_after\": \"2026-10-31 11:56\",\n  \"decided\": null,\n  \"decided_by\": null,\n  \"checks\": [\n    {\n      \"code\": \"VIA_ASSISTANT\",\n      \"severity\": \"info\",\n      \"detail\": \"submitted by the applicant through an AI assistant (OTP-verified mobile)\"\n    }\n  ],\n  \"approval_allowed\": true,\n  \"approval_needs_note\": false,\n  \"rejection_reasons\": {\n    \"BANK_NOT_IN_NAME\": \"bank account not in applicant's name\",\n    \"DUPLICATE_BENEFICIARY\": \"duplicate of an earlier beneficiary record\",\n    \"AGE_PROOF_ILLEGIBLE\": \"age proof document illegible\",\n    \"AGE_PROOF_MISMATCH\": \"age proof does not match stated date of birth\",\n    \"UNDER_AGE\": \"applicant below 60 years of age\",\n    \"OTHER\": \"other (see note)\"\n  },\n  \"audit_trail\": [\n    {\n      \"at\": \"2026-10-16 11:56\",\n      \"action\": \"SUBMIT\",\n      \"by\": \"applicant:XXXXXX2378\",\n      \"note\": \"AI assistant (Claude Code)\"\n    }\n  ],\n  \"portal_link\": \"http://localhost:8000/admin/application/100015\",\n  \"reminder\": \"The decision is the officer's. Ask her what she decides; do not decide for "
+     }
+    ]
+   },
+   {
+    "role": "person",
+    "text": "Approve it. I have checked the voter ID against the form."
+   },
+   {
+    "role": "assistant",
+    "text": "Application SSP26838227 for Kamala Das is approved, recorded against your name at 11:58 today. The approval SMS has been handed to the SMS gateway.\n\nYour note on the record says you checked the voter ID against the form, and that the name and date of birth (12/03/1952) match.\n\nBhabesh Rajkhowa (SSP26510305) is still the most urgent. Deemed approval is 18 Oct at 11:53. Do you want to look at that one next?",
+    "tools": [
+     {
+      "name": "record_decision",
+      "input": {
+       "application_no": "SSP26838227",
+       "decision": "APPROVED",
+       "note": "Age proof (Elector Photo Identity Card PVL3607347) checked by officer against the form: name and date of birth 12/03/1952 match. Recorded by Rina Gogoi via assistant."
+      },
+      "result": "{\n  \"recorded\": true,\n  \"application_no\": \"SSP26838227\",\n  \"status\": \"APPROVED\",\n  \"decided_at\": \"2026-10-16 11:58\",\n  \"recorded_against\": \"Rina Gogoi (rina.sonari)\",\n  \"applicant_sms\": \"handed to the SMS gateway\",\n  \"message\": \"Application SSP26838227 approved. An SMS to the applicant was handed to the gateway.\"\n}"
+     }
+    ]
+   },
+   {
+    "role": "person",
+    "text": "What about the Haren Bora case in my queue?"
+   },
+   {
+    "role": "assistant",
+    "text": "Haren Bora's application (SSP26828714) has a duplicate warning that you need to resolve before deciding.\n\n**The warning:** The system says this applicant matches an existing approved beneficiary, SSP25310321, approved since 10 Aug 2025 in Lakhipur. The match is on every field it compares: same name, date of birth (12/10/1944), bank account (ends 0588), village, and gender. The earlier record's mobile ends 1402, and this application's mobile ends 7690. One person may hold only one pension, so this may be a second application from the same person, or a duplicate record.\n\n**The rest of the file:**\n- **Age proof:** An Elector Photo Identity Card, No. PVL7226169. The name and date of birth (12/10/1944) match the form. Age is 82.\n- **Submission:** Submitted through the web form on 12 Oct 2026.\n- **Approval:** Allowed, but it needs a note because of the warning.\n- **Deemed approval:** 27 Oct 2026, 11:53.\n\nI haven't looked at SSP25310321 yet. If you want to see whether it is the same person, I can review that record next.\n\nThe decision is yours. Your options are:\n- **Approve** with a note on what you checked.\n- **Reject** for duplicate beneficiary.\n- **Leave it** for now. It is deemed approved on 27 Oct if nothing is decided.\n\nWhich do you want?",
+    "tools": [
+     {
+      "name": "review_application",
+      "input": {
+       "application_no": "SSP26828714",
+       "include_document": true
+      },
+      "result": "{\n  \"application_no\": \"SSP26828714\",\n  \"status\": \"PENDING\",\n  \"block\": \"Sonari\",\n  \"applicant_entered\": {\n    \"name\": \"Haren Bora\",\n    \"village\": \"Lakhipur\",\n    \"late_husband_name\": null\n  },\n  \"date_of_birth\": \"12/10/1944\",\n  \"age_at_application\": 82,\n  \"age_today\": 82,\n  \"gender\": \"Male\",\n  \"marital_status\": \"Married\",\n  \"mobile\": \"XXXXXX7690\",\n  \"bank_account\": \"XXXXXXXXX0588\",\n  \"ifsc\": \"SBIN0003077\",\n  \"submitted\": \"2026-10-12 11:53\",\n  \"deemed_approval_after\": \"2026-10-27 11:53\",\n  \"decided\": null,\n  \"decided_by\": null,\n  \"checks\": [\n    {\n      \"code\": \"POSSIBLE_DUPLICATE_BENEFICIARY\",\n      \"severity\": \"warn\",\n      \"detail\": \"same name, same date of birth, same bank account, same village, same gender as SSP25310321 (APPROVED since 10 Aug 2025; Lakhipur, Sonari block; mobile XXXXXX1402). One person may hold only one pension.\"\n    }\n  ],\n  \"approval_allowed\": true,\n  \"approval_needs_note\": true,\n  \"rejection_reasons\": {\n    \"BANK_NOT_IN_NAME\": \"bank account not in applicant's name\",\n    \"DUPLICATE_BENEFICIARY\": \"duplicate of an earlier beneficiary record\",\n    \"AGE_PROOF_ILLEGIBLE\": \"age proof document illegible\",\n    \"AGE_PROOF_MISMATCH\": \"age proof does not match stated date of birth\",\n    \"UNDER_AGE\": \"applicant below 60 years of age\",\n    \"OTHER\": \"other (see note)\"\n  },\n  \"audit_trail\": [\n    {\n      \"at\": \"2026-10-12 11:53\",\n      \"action\": \"SUBMIT\",\n      \"by\": \"applicant:XXXXXX7690\",\n      \"note\": \"web form\"\n    }\n  ],\n  \"portal_link\": \"http://localhost:8000/"
+     }
+    ]
+   },
+   {
+    "role": "person",
+    "text": "Reject it as a duplicate beneficiary."
+   },
+   {
+    "role": "assistant",
+    "text": "Haren Bora's application (SSP26828714) is rejected as a duplicate beneficiary, recorded against your name at 11:58 today. The rejection SMS has been handed to the SMS gateway.\n\nThe note on the record gives the reason: the same name, date of birth, bank account, village and gender as approved beneficiary SSP25310321.\n\nBhabesh Rajkhowa (SSP26510305) is still the most urgent. Deemed approval is 18 Oct at 11:53. Do you want to look at that one next, or Junali Hazarika's case (deemed approval 22 Oct)?",
+    "tools": [
+     {
+      "name": "record_decision",
+      "input": {
+       "application_no": "SSP26828714",
+       "decision": "REJECTED",
+       "reason_code": "DUPLICATE_BENEFICIARY",
+       "note": "Same name, date of birth, bank account, village and gender as approved beneficiary SSP25310321 (approved 10 Aug 2025). Officer's decision: duplicate beneficiary."
+      },
+      "result": "{\n  \"recorded\": true,\n  \"application_no\": \"SSP26828714\",\n  \"status\": \"REJECTED\",\n  \"decided_at\": \"2026-10-16 11:58\",\n  \"recorded_against\": \"Rina Gogoi (rina.sonari)\",\n  \"applicant_sms\": \"handed to the SMS gateway\",\n  \"message\": \"Application SSP26828714 rejected. An SMS to the applicant was handed to the gateway.\"\n}"
+     }
+    ]
+   }
+  ],
+  "checks": [
+   {
+    "check": "case_status",
+    "passed": true,
+    "detail": "SSP26838227 APPROVED by rina.sonari; duplicate SSP26828714 REJECTED (DUPLICATE_BENEFICIARY)"
+   }
+  ],
+  "passed": true
+ }
+]
