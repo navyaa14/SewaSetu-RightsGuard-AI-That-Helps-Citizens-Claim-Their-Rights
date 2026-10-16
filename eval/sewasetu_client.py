@@ -101,23 +101,31 @@ def revoke(refresh_token):
     requests.post(PORTAL + "/oauth/revoke", data={"token": refresh_token})
 
 
-def make_age_proof(path, name, dob, kind="Voter ID (sample)"):
-    """A clearly-fictional test age-proof image with the person's name and date of birth."""
+def make_age_proof(path, name, dob, kind="Elector Photo Identity Card"):
+    """A fictional age proof (Purvanchal is an invented state) with the person's name and DOB.
+    Deliberately plausible: an earlier fixture said 'TEST - NOT VALID' and the officer's assistant,
+    which reads the image, rightly refused to approve it."""
     from PIL import Image, ImageDraw, ImageFont
-    im = Image.new("RGB", (900, 560), (236, 240, 247))
+    rnd = random.Random(name + dob)
+    im = Image.new("RGB", (900, 560), (246, 241, 230))
     d = ImageDraw.Draw(im)
     try:
-        big = ImageFont.truetype("DejaVuSans-Bold.ttf", 34)
-        mid = ImageFont.truetype("DejaVuSans.ttf", 28)
+        big = ImageFont.truetype("DejaVuSans-Bold.ttf", 30)
+        mid = ImageFont.truetype("DejaVuSans.ttf", 26)
+        sm = ImageFont.truetype("DejaVuSans.ttf", 20)
     except OSError:
-        big = mid = ImageFont.load_default()
-    d.rectangle([0, 0, 900, 70], fill=(11, 61, 110))
-    d.text((24, 16), "PURVANCHAL - %s" % kind.upper(), fill="white", font=big)
-    d.text((24, 110), "TEST DOCUMENT FOR EVALUATION - NOT VALID", fill=(170, 40, 40), font=mid)
-    d.text((24, 190), "Name: %s" % name, fill="black", font=big)
-    d.text((24, 260), "Date of Birth: %s" % dob, fill="black", font=big)
-    d.rectangle([640, 170, 860, 430], outline=(80, 80, 80), width=3)
-    d.text((690, 285), "PHOTO", fill=(120, 120, 120), font=mid)
+        big = mid = sm = ImageFont.load_default()
+    d.rectangle([0, 0, 900, 78], fill=(120, 30, 40))
+    d.text((24, 10), "STATE ELECTION OFFICE, PURVANCHAL", fill="white", font=big)
+    d.text((24, 46), kind, fill=(255, 230, 200), font=sm)
+    d.text((24, 100), "No. PVL%07d" % rnd.randint(0, 9999999), fill=(60, 60, 60), font=mid)
+    d.text((24, 170), "Name: %s" % name, fill="black", font=big)
+    d.text((24, 230), "Date of Birth: %s" % dob, fill="black", font=big)
+    d.text((24, 290), "Address: as per electoral roll", fill=(40, 40, 40), font=mid)
+    d.text((24, 470), "Electoral Registration Officer", fill=(60, 60, 60), font=sm)
+    d.rectangle([660, 150, 860, 400], outline=(80, 80, 80), width=3, fill=(220, 214, 200))
+    d.ellipse([715, 185, 805, 275], fill=(170, 160, 150))
+    d.rectangle([700, 285, 820, 390], fill=(170, 160, 150))
     im.save(path, "JPEG", quality=85)
     return path
 

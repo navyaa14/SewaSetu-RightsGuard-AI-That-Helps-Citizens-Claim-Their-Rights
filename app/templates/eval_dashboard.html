@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sewa Setu · Eval dashboard</title>
+<style>
+:root{--ink:#14202b;--muted:#5b6774;--line:#dde3ea;--bg:#f4f6f8;--card:#fff;--navy:#0b3d6e;--saffron:#f7931e;
+--pass:#1b7e3c;--pass-bg:#e7f5ec;--fail:#b3261e;--fail-bg:#fdecea;--warn:#8a5a00}
+*{box-sizing:border-box}
+body{margin:0;font:15px/1.5 -apple-system,"Segoe UI",Roboto,Arial,sans-serif;color:var(--ink);background:var(--bg)}
+header{background:var(--navy);color:#fff;padding:22px 20px 18px;border-bottom:5px solid var(--saffron)}
+header h1{margin:0;font-size:22px;letter-spacing:.2px}
+header p{margin:4px 0 0;color:#cfe0f3;font-size:14px}
+main{max-width:1120px;margin:0 auto;padding:20px 16px 60px}
+h2{font-size:18px;margin:34px 0 10px}
+.lede{color:var(--muted);max-width:760px}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-top:16px}
+.kpi{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px 16px}
+.kpi .v{font-size:30px;font-weight:700;font-variant-numeric:tabular-nums}
+.kpi .l{color:var(--muted);font-size:13px}
+.runs{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0}
+.runs a{border:1px solid var(--line);background:#fff;border-radius:999px;padding:5px 12px;color:var(--ink);
+text-decoration:none;font-size:13px}
+.runs a.on{background:var(--navy);color:#fff;border-color:var(--navy)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:12px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px 16px}
+.card h3{margin:0 0 2px;font-size:16px}
+.meta{color:var(--muted);font-size:13px}
+.why{margin:8px 0;font-size:14px}
+.pill{display:inline-block;font-size:12px;font-weight:600;border-radius:999px;padding:2px 9px}
+.pill.pass{background:var(--pass-bg);color:var(--pass)}.pill.fail{background:var(--fail-bg);color:var(--fail)}
+.pill.side{background:#eef2f7;color:var(--navy)}
+.chips{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px}
+.chip{font-size:11px;background:#f1f4f7;border:1px solid var(--line);border-radius:4px;padding:1px 6px;color:var(--muted)}
+table{border-collapse:collapse;width:100%;background:#fff;border:1px solid var(--line);border-radius:10px;overflow:hidden}
+th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);font-size:14px;vertical-align:top}
+th{background:#f7f9fb;font-size:12px;text-transform:uppercase;letter-spacing:.4px;color:var(--muted)}
+.ok{color:var(--pass);font-weight:700}.bad{color:var(--fail);font-weight:700}
+details.conv{background:#fff;border:1px solid var(--line);border-radius:10px;margin:10px 0}
+details.conv>summary{cursor:pointer;padding:12px 14px;list-style:none;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+details.conv>summary::-webkit-details-marker{display:none}
+details.conv[open]>summary{border-bottom:1px solid var(--line)}
+.body{padding:12px 14px}
+.msg{max-width:80%;margin:8px 0;padding:9px 12px;border-radius:12px;white-space:pre-wrap;word-wrap:break-word;font-size:14px}
+.person{background:#fff4e5;border:1px solid #f6d4a6;margin-right:auto}
+.assistant{background:#eef4fb;border:1px solid #cfe0f3;margin-left:auto}
+.system{background:#f3f3f3;border:1px dashed #bbb;font-size:12px;color:var(--muted);margin:6px auto;max-width:90%}
+.who{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-bottom:2px}
+details.tool{margin:4px 0 0 auto;max-width:80%;font-size:12px}
+details.tool summary{cursor:pointer;color:var(--navy)}
+pre{white-space:pre-wrap;word-break:break-word;background:#f7f9fb;border:1px solid var(--line);border-radius:6px;padding:8px;
+font-size:12px;max-height:260px;overflow:auto}
+.change{border-left:4px solid var(--saffron)}
+.change b{display:block;font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-top:6px}
+.empty{color:var(--muted);font-style:italic}
+footer{color:var(--muted);font-size:12px;margin-top:40px}
+@media (max-width:600px){.msg,details.tool{max-width:100%}header h1{font-size:19px}}
+</style>
+</head>
+<body>
+<header>
+  <h1>Sewa Setu assistant: evaluation dashboard</h1>
+  <p>Invented citizens and officers talking to a real MCP client, then checked against this portal's database.</p>
+</header>
+<main>
+<p class="lede">Each person below is invented to stand for a way the counter goes wrong. In every run, a small model
+(Claude Code, headless, with a turn limit) is connected to our MCP endpoint and signed in through the portal's
+own OAuth flow, with the OTP read from the SMS gateway. A second model plays the person from the card. Afterwards
+we read the portal's database: the pass/fail below comes from what is actually stored, not from what the assistant said.</p>
+
+{% if run %}
+<div class="kpis">
+  <div class="kpi"><div class="v">{{ run.passed }}/{{ run.total }}</div><div class="l">conversations passed, run {{ run.run_id }}{% if run.label %} ({{ run.label }}){% endif %}</div></div>
+  <div class="kpi"><div class="v">{{ ((run.passed / run.total * 100) if run.total else 0)|round|int }}%</div><div class="l">pass rate</div></div>
+  {% if contract %}<div class="kpi"><div class="v">{{ contract.passed }}/{{ contract.total }}</div><div class="l">contract tests (scripted MCP client + DB checks)</div></div>{% endif %}
+  <div class="kpi"><div class="v" style="font-size:15px;padding-top:8px">{{ run.client }}</div><div class="l">assistant under test · person played by {{ run.persona_model }} · commit {{ run.git }}</div></div>
+</div>
+<h2>Runs</h2>
+<div class="runs">
+{% for r in runs %}<a class="{{ 'on' if r.run_id == run.run_id }}" href="?run={{ r.run_id }}">{{ r.run_id }}{% if r.label %} · {{ r.label }}{% endif %} · {{ r.passed }}/{{ r.total }}</a>{% endfor %}
+</div>
+{% else %}
+<p class="empty">No agent runs recorded yet.</p>
+{% endif %}
+
+{% if changes %}
+<h2>What the evals found, and what we changed</h2>
+<div class="grid">
+{% for c in changes %}
+<div class="card change">
+  <h3>{{ c.title }}</h3>
+  <b>Found</b>{{ c.found }}
+  <b>Changed</b>{{ c.changed }}
+  <b>After</b>{{ c.result }}
+</div>
+{% endfor %}
+</div>
+{% endif %}
+
+<h2>The people</h2>
+<div class="grid">
+{% for p in personas %}
+{% set rs = by_persona.get(p.id, []) %}
+<div class="card">
+  <div style="display:flex;justify-content:space-between;gap:8px;align-items:start">
+    <h3>{{ p.name }}</h3>
+    {% if rs %}{% set np = rs|selectattr('passed')|list|length %}<span class="pill {{ 'pass' if np == rs|length else 'fail' }}">{{ np }}/{{ rs|length }}</span>{% endif %}
+  </div>
+  <div class="meta"><span class="pill side">{{ p.side }}</span> {% if p.age %}{{ p.age }} · {% endif %}{% if p.village %}{{ p.village }}, {% endif %}{{ p.block or '' }}</div>
+  <p class="why">{{ p.why }}</p>
+  <div class="meta"><b>Talks like:</b> {{ p.speaks }}</div>
+  <div class="meta"><b>Wants:</b> {{ p.goal }}</div>
+  <div class="chips">{% for c in p.checks %}<span class="chip">{{ c }}</span>{% endfor %}</div>
+</div>
+{% endfor %}
+</div>
+
+{% if run %}
+<h2>Conversations in run {{ run.run_id }}</h2>
+{% for res in run.results %}
+<details class="conv">
+  <summary>
+    <span class="pill {{ 'pass' if res.passed else 'fail' }}">{{ 'PASS' if res.passed else 'FAIL' }}</span>
+    <b>{{ res.persona }}</b> <span class="meta">attempt {{ res.attempt }} · {{ res.seconds }}s · {{ res.assistant_turns or 0 }} assistant turns{% if res.tool_calls %} · tools: {{ res.tool_calls|reject('equalto','ToolSearch')|join(', ') }}{% endif %}</span>
+  </summary>
+  <div class="body">
+    <table>
+      <tr><th>Database check</th><th>Result</th><th>Detail</th></tr>
+      {% for c in res.checks %}<tr><td>{{ c.check }}</td><td class="{{ 'ok' if c.passed else 'bad' }}">{{ 'pass' if c.passed else 'fail' }}</td><td>{{ c.detail }}</td></tr>{% endfor %}
+    </table>
+    {% for t in res.transcript %}
+      <div class="msg {{ t.role }}"><div class="who">{{ t.role }}</div>{{ t.text }}</div>
+      {% for tc in t.tools or [] %}{% if tc.name != 'ToolSearch' %}
+      <details class="tool"><summary>⚙ {{ tc.name.split('__')[-1] }}</summary>
+        <pre>{{ tc.input|tojson(indent=1) }}</pre><pre>{{ tc.result }}</pre></details>
+      {% endif %}{% endfor %}
+    {% endfor %}
+  </div>
+</details>
+{% endfor %}
+{% endif %}
+
+{% if contract %}
+<h2>Contract tests ({{ contract.ran_at }})</h2>
+<p class="lede">Scripted calls through the official MCP Python client, signed in with the real OAuth flow, each
+followed by database assertions. These pin down the guarantees (identity, idempotency, rules) independently of
+how any model behaves.</p>
+<table>
+<tr><th>Test</th><th>Why</th><th>Result</th><th>Detail</th></tr>
+{% for t in contract.tests %}<tr><td>{{ t.name }}</td><td class="meta">{{ t.why }}</td><td class="{{ 'ok' if t.passed else 'bad' }}">{{ 'pass' if t.passed else 'fail' }}</td><td class="meta">{{ t.detail }}</td></tr>{% endfor %}
+</table>
+{% endif %}
+<footer>Raw data: <a href="/eval-dashboard/runs.json">runs.json</a>. Mobile numbers are masked; all people and documents are invented.</footer>
+</main>
+</body>
+</html>
