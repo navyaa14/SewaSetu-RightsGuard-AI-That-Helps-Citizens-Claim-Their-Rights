@@ -1,6 +1,24 @@
+# Sewa Setu portal + the two MCP servers, behind Caddy (automatic HTTPS).
+#   cp .env.example .env   # set DOMAIN, SECRET_KEY, ADMIN_PASSWORD, OFFICER_ACCOUNTS
+#   docker compose up -d --build
+x-app-env: &app-env
+  TZ: Asia/Kolkata
+  PUBLIC_BASE_URL: https://${DOMAIN:?set DOMAIN in .env}
+  CITIZEN_MCP_URL: https://${DOMAIN}/citizen/mcp
+  OFFICER_MCP_URL: https://${DOMAIN}/officer/mcp
+  PORTAL_INTERNAL_URL: http://app:8000
+  SECRET_KEY: ${SECRET_KEY:?set SECRET_KEY in .env}
+  ADMIN_USERNAME: ${ADMIN_USERNAME:-admin}
+  ADMIN_PASSWORD: ${ADMIN_PASSWORD:?set ADMIN_PASSWORD in .env}
+  ADMIN_FULL_NAME: ${ADMIN_FULL_NAME:-District Social Welfare Officer}
+  OFFICER_ACCOUNTS: ${OFFICER_ACCOUNTS:-}
+  AGENT_BLOCKS: ${AGENT_BLOCKS:-Sonari,Rajapara,Dhemaji Pathar,Borgaon,Namti,Khelua}
+  EVAL_RESULTS_DIR: /srv/eval-results
+
 services:
   db:
     image: postgres:15
+    restart: unless-stopped
     environment:
       POSTGRES_DB: sewasetu
       POSTGRES_USER: sewasetu
@@ -12,39 +30,69 @@ services:
 
   app:
     build: ./app
-    ports:
-      - "8000:8000"
-    environment:
-      ADMIN_USERNAME: ${ADMIN_USERNAME:-admin}
-      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-change-me-before-deploying}
-      # the address at which people reach this portal; stamped into sign-in tokens and
-      # discovery documents, so it must be the public one when deployed
-      PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:-http://localhost:8000}
-    depends_on:
-      - db
-      - smsgw
+    restart: unless-stopped
+    environment: *app-env
+    depends_on: [db, smsgw]
     volumes:
       - uploads:/var/sewasetu/uploads
       - applogs:/var/log/sewasetu
+      - ./eval/results:/srv/eval-results:ro
+
+  citizen-mcp:
+    build: ./app
+    restart: unless-stopped
+    command: ["uvicorn", "mcp_servers.citizen:app", "--host", "0.0.0.0", "--port", "8101",
+              "--workers", "2", "--proxy-headers", "--forwarded-allow-ips", "*"]
+    environment: *app-env
+    depends_on: [app]
+    volumes:
+      - uploads:/var/sewasetu/uploads
+
+  officer-mcp:
+    build: ./app
+    restart: unless-stopped
+    command: ["uvicorn", "mcp_servers.officer:app", "--host", "0.0.0.0", "--port", "8102",
+              "--workers", "2", "--proxy-headers", "--forwarded-allow-ips", "*"]
+    environment: *app-env
+    depends_on: [app]
+    volumes:
+      - uploads:/var/sewasetu/uploads:ro
 
   scheduler:
     build: ./app
+    restart: unless-stopped
     # Run the deemed-approval job once at startup (so a freshly restored
     # database is brought up to date), then hand over to cron for the nightly run.
     command: ["sh", "-c", "until python /app/scripts/deemed_approval.py; do sleep 5; done; exec cron -f"]
-    depends_on:
-      - db
+    environment:
+      TZ: Asia/Kolkata
+      SECRET_KEY: ${SECRET_KEY}
+    depends_on: [db]
     volumes:
       - applogs:/var/log/sewasetu
 
   smsgw:
     build: ./smsgw
-    # internal only — reached by the app over the docker network and exposed to
-    # users via the app at /__gateway/ (so no second host port is needed)
+    restart: unless-stopped
+    # internal only; exposed to users via the app at /__gateway/
     expose:
       - "8025"
+
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    ports: ["80:80", "443:443"]
+    environment:
+      DOMAIN: ${DOMAIN}
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on: [app, citizen-mcp, officer-mcp]
 
 volumes:
   pgdata:
   uploads:
   applogs:
+  caddy_data:
+  caddy_config:

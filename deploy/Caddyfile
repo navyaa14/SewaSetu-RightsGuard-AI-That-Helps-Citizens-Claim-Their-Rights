@@ -1,0 +1,25 @@
+# One public name, TLS from Let's Encrypt.
+#   https://DOMAIN/              portal (and OAuth authorization server)
+#   https://DOMAIN/citizen/mcp   citizen MCP server
+#   https://DOMAIN/officer/mcp   block-officer MCP server
+{$DOMAIN} {
+	encode gzip
+
+	@citizen path /citizen/* /.well-known/oauth-protected-resource/citizen/*
+	handle @citizen {
+		reverse_proxy citizen-mcp:8101 {
+			flush_interval -1
+		}
+	}
+
+	@officer path /officer/* /.well-known/oauth-protected-resource/officer/*
+	handle @officer {
+		reverse_proxy officer-mcp:8102 {
+			flush_interval -1
+		}
+	}
+
+	handle {
+		reverse_proxy app:8000
+	}
+}
