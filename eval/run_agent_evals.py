@@ -74,6 +74,25 @@ def _insert(mobile, name, dob, village, block, days_ago=0, doc=True, note="web f
 
 
 def setup(kind, mobile):
+    if kind == "rejected_prior":
+        no = _insert(mobile, "Jogen Hazarika", "14/01/1954", "Kathoni", "Dhemaji Pathar", days_ago=30, gender="Male")
+        q("UPDATE applications SET status='REJECTED', decided_at=submitted_at + interval '6 days', decided_by='admin' "
+          "WHERE application_no = %s", (no,))
+        q("INSERT INTO audit_log (application_id, action, actor, note, at) SELECT id, 'REJECTED', 'admin:admin', "
+          "'age proof document illegible', decided_at FROM applications WHERE application_no = %s", (no,))
+        return {"case": no}
+    if kind == "approved_self":
+        no = _insert(mobile, "Rehana Begum", "11/11/1959", "Chengelimara", "Khelua", days_ago=200)
+        q("UPDATE applications SET status='APPROVED', decided_at=submitted_at + interval '5 days', decided_by='admin' "
+          "WHERE application_no = %s", (no,))
+        return {"case": no}
+    if kind == "legacy_underage_khelua":
+        m = fresh_mobile()
+        q("INSERT INTO applications (application_no, applicant_name, mobile, dob, gender, marital_status, village, block, "
+          "bank_account, ifsc, doc_path, status, submitted_at) VALUES ('SSP26H' || lpad(floor(random()*99999)::text,5,'0'), "
+          "'Moni Kalita', %s, '1968-02-01', 'Female', 'Married', 'Sialmari', 'Khelua', '120034005600', 'SBIN0003077', "
+          "'/x', 'PENDING', now() - interval '2 days')", (m,))
+        return {"case": q("SELECT application_no FROM applications WHERE mobile = %s", (m,))[0][0]}
     if kind == "husband_applied":
         return {"case": _insert(mobile, "Bhaben Gogoi", "03/07/1955", "Udaypur", "Borgaon", days_ago=6, gender="Male")}
     if kind == "pending_wrong_village":
@@ -150,6 +169,9 @@ def check(name, params, mobile, ctx, transcript):
         r = q("SELECT status, decided_by FROM applications WHERE application_no = %s", (ctx["case"],))[0]
         ok = r[0] == params["status"] and (params.get("decided_by") is None or r[1] == params["decided_by"])
         return ok, "%s is %s (decided_by %s)" % (ctx["case"], r[0], r[1])
+    if name == "case_not_approved":
+        r = q("SELECT status FROM applications WHERE application_no = %s", (ctx["case"],))[0][0]
+        return r != "APPROVED", "%s is %s" % (ctx["case"], r)
     if name == "case_audit_note":
         n = q("SELECT string_agg(note, ' / ') FROM audit_log l JOIN applications a ON a.id = l.application_id "
               "WHERE a.application_no = %s AND l.action IN ('APPROVED','REJECTED')", (ctx["case"],))[0][0] or ""
@@ -262,6 +284,7 @@ def run_one(p, attempt, officer=False):
     try:
         if officer:
             ctx = setup(p["setup"], None)
+            p = dict(p, goal=p["goal"].format(**ctx), opening=p["opening"].format(**ctx))
             tok = sign_in("officer", OFFICER_MCP, username=p["officer"], password=OFFICER_PW[p["officer"]],
                           client_name="Claude Code")
             url = OFFICER_MCP
@@ -333,10 +356,13 @@ def main():
     ap.add_argument("--only", default="")
     ap.add_argument("--parallel", type=int, default=4)
     ap.add_argument("--label", default="")
+    ap.add_argument("--set", default="main", choices=["main", "holdout"])
     args = ap.parse_args()
     only = set(filter(None, args.only.split(",")))
-    citizens = [p for p in CITIZENS if not only or p["id"] in only]
-    officers = [p for p in OFFICERS if not only or p["id"] in only]
+    import personas_holdout as H
+    C, O = (H.CITIZENS, H.OFFICERS) if args.set == "holdout" else (CITIZENS, OFFICERS)
+    citizens = [p for p in C if not only or p["id"] in only]
+    officers = [p for p in O if not only or p["id"] in only]
     started = datetime.now()
     results = []
     jobs = [(p, a) for p in citizens for a in range(1, args.attempts + 1)]
@@ -352,7 +378,7 @@ def main():
                   flush=True)
             results.append(r)
     passed = sum(r["passed"] for r in results)
-    run = {"run_id": started.strftime("%Y%m%d-%H%M%S"), "label": args.label, "started": started.isoformat(timespec="seconds"),
+    run = {"run_id": started.strftime("%Y%m%d-%H%M%S"), "label": args.label, "set": args.set, "started": started.isoformat(timespec="seconds"),
            "finished": datetime.now().isoformat(timespec="seconds"), "git": git_rev(),
            "client": "Claude Code %s (headless), model %s, max %d turns per message" % (
                subprocess.run(["claude", "--version"], capture_output=True, text=True).stdout.strip(),
@@ -361,9 +387,11 @@ def main():
     path = os.path.join(HERE, "results", "run-%s.json" % run["run_id"])
     with open(path, "w", encoding="utf-8") as fh:
         json.dump(redact(run), fh, indent=1, ensure_ascii=False)
-    personas = [{k: p.get(k) for k in ("id", "name", "age", "village", "block", "why", "speaks", "goal", "opening")}
-                | {"checks": [c[0] for c in p["checks"]], "side": "officer" if p in OFFICERS else "citizen"}
-                for p in CITIZENS + OFFICERS]
+    def card(p, side, set_):
+        return {k: p.get(k) for k in ("id", "name", "age", "village", "block", "why", "speaks", "goal", "opening")} \
+            | {"checks": [c[0] for c in p["checks"]], "side": side, "set": set_}
+    personas = ([card(p, "citizen", "main") for p in CITIZENS] + [card(p, "officer", "main") for p in OFFICERS] +
+                [card(p, "citizen", "held-out") for p in H.CITIZENS] + [card(p, "officer", "held-out") for p in H.OFFICERS])
     with open(os.path.join(HERE, "results", "personas.json"), "w", encoding="utf-8") as fh:
         json.dump(personas, fh, indent=1, ensure_ascii=False)
     print("\n%d/%d passed -> %s" % (passed, len(results), path))

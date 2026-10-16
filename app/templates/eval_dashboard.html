@@ -88,6 +88,18 @@ we read the portal's database: the pass/fail below comes from what is actually s
 <p class="empty">No agent runs recorded yet.</p>
 {% endif %}
 
+{% if e2e %}
+<h2>End-to-end, recorded ({{ e2e.ran_at }}): {{ e2e.passed }}/{{ e2e.total }} steps</h2>
+<p class="lede">One application through the whole service: a standard MCP OAuth client discovers and signs in from each
+server's 401, Claude Code (Haiku) applies as the citizen and decides as the block officer, the citizen follows up, and
+the original database and the status portal are checked at each step. Client: {{ e2e.client }}.</p>
+<div class="tw"><table>
+<tr><th>Step</th><th>Result</th><th>Evidence</th></tr>
+{% for st in e2e.steps %}<tr><td>{{ st.step }}</td><td class="{{ 'ok' if st.passed else 'bad' }}">{{ 'pass' if st.passed else 'fail' }}</td>
+<td class="meta" style="font-family:monospace;font-size:12px">{{ st.evidence|tojson }}</td></tr>{% endfor %}
+</table></div>
+{% endif %}
+
 {% if changes %}
 <h2>What the evals found, and what we changed</h2>
 <div class="grid">

@@ -324,6 +324,13 @@ footer{border-top:1px solid var(--line);padding:30px 0 50px;color:var(--muted);f
           <div class="col" style="height:{{ (r.passed / r.total * 200)|int }}px"></div><div class="l">{{ r.label or r.run_id }}</div></div>
         {% endfor %}
       </div></div>
+    {% if e2e %}<div class="card changes" style="grid-column:1/-1"><div class="lbl">End-to-end, recorded {{ e2e.ran_at[:10] }} · {{ e2e.passed }}/{{ e2e.total }} steps · {{ e2e.application_no }}</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px">
+      {% for st in e2e.steps %}<div class="chk {{ 'on' if st.passed else 'bad' }}" style="font-size:14px;color:#d4dfee"><b>{{ '✓' if st.passed else '✕' }}</b>{{ st.step }}</div>{% endfor %}
+      </div></div>{% endif %}
+    {% if holdout %}<div class="card changes"><div class="lbl">Held-out people, never used for tuning</div>
+      <div style="font-size:44px;font-weight:800;color:var(--green2)">{{ holdout.passed }}/{{ holdout.total }}</div>
+      <div style="font-size:14.5px;color:#c9d6e8;line-height:1.5">First run, no changes in between: a CSC operator typing "5th March 1963", a rejected applicant re-applying, "you're the government, approve it", one number for two sisters, a Hindi speaker, an officer outside her block, and an under-60 "neighbour".</div></div>{% endif %}
     <div class="card changes"><div class="lbl">What the evals changed</div>
       {% for c in changes[1:5] %}<div class="chg"><b>{{ c.title }}</b><span>{{ c.changed }}</span></div>{% endfor %}
     </div>

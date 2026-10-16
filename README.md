@@ -130,6 +130,12 @@ python eval/run_contract_tests.py                 # 21 scripted checks
 python eval/run_agent_evals.py --attempts 2       # needs the claude CLI signed in; Haiku vs 13 people
 ```
 
+`run_end_to_end.py` is the single recorded proof: a standard MCP OAuth client (the official SDK's)
+discovers and signs in to both endpoints from their 401 challenges, Claude Code (Haiku) applies and
+then approves as the officer, and the database, the status portal and the citizen's assistant all
+agree. `run_agent_evals.py --set holdout` runs 7 held-out people that were never used for tuning.
+`/version` reports the deployed commit and the seed size. See `SUBMISSION.md`.
+
 `run_contract_tests.py` covers the complete live sequence end to end: OTP sign-in, citizen MCP
 application, the row in Postgres, the officer MCP decision, the status-portal read-back, the
 original web form, CSRF, revocation and token isolation. The agent-eval officer scenarios create

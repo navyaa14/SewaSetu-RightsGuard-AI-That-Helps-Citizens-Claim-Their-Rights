@@ -15,6 +15,7 @@ x-app-env: &app-env
   OFFICER_ACCOUNTS: ${OFFICER_ACCOUNTS:-}
   AGENT_BLOCKS: ${AGENT_BLOCKS:-Sonari,Rajapara,Dhemaji Pathar,Borgaon,Namti,Khelua}
   EVAL_RESULTS_DIR: /srv/eval-results
+  GIT_COMMIT: ${GIT_COMMIT:-unknown}   # GIT_COMMIT=$(git rev-parse --short HEAD) docker compose up -d --build
 
 services:
   db:

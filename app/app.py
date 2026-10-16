@@ -1124,6 +1124,23 @@ def agent_upload(token):
     return render_template("agent_upload.html", masked=masked)
 
 
+@app.route("/version")
+def version():
+    """Deployment fingerprint: lets anyone confirm this server runs the submitted repository
+    (commit), on the original data (seed size), with the advertised MCP endpoints."""
+    conn = get_db(); cur = conn.cursor()
+    cur.execute("SELECT count(*) FROM applications WHERE submitted_at < '2026-10-01'")
+    seed = cur.fetchone()[0]
+    cur.execute("SELECT count(*) FROM applications")
+    total = cur.fetchone()[0]
+    cur.close(); conn.close()
+    return {"service": "sewasetu-assistant", "commit": os.environ.get("GIT_COMMIT", "unknown"),
+            "seed_applications": seed, "applications_now": total,
+            "citizen_mcp": os.environ.get("CITIZEN_MCP_URL"), "officer_mcp": os.environ.get("OFFICER_MCP_URL"),
+            "authorization_server": os.environ.get("PUBLIC_BASE_URL"),
+            "pages": ["/", "/status", "/admin", "/demo", "/eval-dashboard", "/version"]}
+
+
 @app.route("/healthz")
 def healthz():
     try:
@@ -1144,6 +1161,14 @@ import glob as _glob  # noqa: E402
 
 EVAL_DIR = os.environ.get("EVAL_RESULTS_DIR",
                           os.path.join(os.path.dirname(BASE_DIR), "eval", "results"))
+
+
+def _load_e2e():
+    try:
+        with open(os.path.join(EVAL_DIR, "e2e-latest.json"), encoding="utf-8") as fh:
+            return _json.load(fh)
+    except (OSError, ValueError):
+        return None
 
 
 def _load_eval_runs():
@@ -1193,7 +1218,7 @@ def eval_dashboard():
         for res in run.get("results", []):
             by_persona.setdefault(res["persona"], []).append(res)
     return render_template("eval_dashboard.html", runs=runs, run=run, personas=personas,
-                           changes=changes, contract=contract, by_persona=by_persona)
+                           changes=changes, contract=contract, by_persona=by_persona, e2e=_load_e2e())
 
 
 @app.route("/eval-dashboard/runs.json")
@@ -1242,8 +1267,10 @@ def _mask_no(no):
 @app.route("/demo")
 def demo_page():
     runs, personas, changes, contract = _load_eval_runs()
-    full = [r for r in runs if r.get("total", 0) >= 20]
-    return render_template("demo.html", tools=_tool_catalog(), runs=list(reversed(full)), contract=contract,
+    full = [r for r in runs if r.get("total", 0) >= 20 and r.get("set", "main") == "main"]
+    holdout = next((r for r in runs if r.get("set") == "holdout"), None)
+    return render_template("demo.html", holdout=holdout, tools=_tool_catalog(), runs=list(reversed(full)), contract=contract,
+                           e2e=_load_e2e(),
                            changes=changes,
                            citizen_url=os.environ.get("CITIZEN_MCP_URL", ""),
                            officer_url=os.environ.get("OFFICER_MCP_URL", ""),
@@ -1325,7 +1352,8 @@ def demo_replays():
             for t in res["transcript"]:
                 tr.append({"role": t["role"], "text": t["text"],
                            "tools": [{"name": x["name"].split("__")[-1], "input": x.get("input", {}),
-                                      "result": (x.get("result") or "")[:1200]}
+                                      "result": re.sub(r"/u/\[?[A-Za-z\-]*$", "/u/[link-token]",
+                                             (x.get("result") or "")[:1200])}
                                      for x in (t.get("tools") or []) if x["name"] != "ToolSearch"]})
             out.append({"id": res["persona"], "name": meta.get("name", res["persona"]), "side": meta.get("side"),
                         "age": meta.get("age"), "village": meta.get("village"), "block": meta.get("block"),

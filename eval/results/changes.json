@@ -58,5 +58,11 @@
   "found": "An independent review flagged: no CSRF on admin forms, a fixed database password, cookies not marked Secure, upload links reusable, 'SMS sent' claimed even when the gateway failed, and full transcripts published.",
   "changed": "CSRF on every browser form; DB password from .env; Secure cookies over HTTPS; single-use upload links; honest SMS status; redacted eval data. Three new contract tests cover CSRF, single-use links and the original web form end to end.",
   "result": "Contract tests 21/21. Agent run 25/26. The one failure (Haren) was the harness: a localhost link the simulated person would not open, and a fixture whose old bank number did not match his passbook. After fixing both, the re-check passed 2/2. Role swaps by Haiku still appear occasionally and are tracked as an open issue."
+ },
+ {
+  "title": "Final checks: a grader bug, a clean run, and held-out people",
+  "found": "The first complete run on the final code scored 25/26. The one failure was my checker: Golapi's assistant said 'apne-aap approve ho jaati hai' (approved automatically), but the pattern only knew 'automatic', 'deemed' and Devanagari. The first end-to-end script also put the applicant in Rajapara while signing in the Sonari officer, so jurisdiction correctly blocked the approval.",
+  "changed": "Added romanized Hindi to the pattern, without re-scoring the old run. Put the end-to-end applicant in the officer's block. Wrote 7 held-out people after everything else was final.",
+  "result": "Final full run 26/26. Held-out people 14/14 on their first run. End-to-end 9/9: standard OAuth discovery for both roles, Claude Code applies and approves, and the database, status portal and assistant agree."
  }
 ]

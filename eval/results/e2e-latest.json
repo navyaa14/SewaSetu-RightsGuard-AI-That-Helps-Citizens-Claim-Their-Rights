@@ -1,0 +1,338 @@
+{
+ "kind": "end-to-end",
+ "ran_at": "2026-10-16T15:07:10",
+ "client": "MCP Python SDK OAuthClientProvider (sign-in) + Claude Code 2.1.301 (Claude Code), model haiku (conversations)",
+ "application_no": "SSP26786495",
+ "passed": 9,
+ "total": 9,
+ "steps": [
+  {
+   "step": "Original database present",
+   "passed": true,
+   "evidence": {
+    "seeded_applications": 100000
+   },
+   "at": "2026-10-16T15:07:10"
+  },
+  {
+   "step": "Citizen: standard OAuth client discovers and signs in",
+   "passed": true,
+   "evidence": {
+    "scope_requested": "citizen",
+    "resource": "http://localhost:8101/mcp",
+    "consent_page": "Allow this application?",
+    "tools_listed": [
+     "check_eligibility",
+     "get_age_proof_upload_link",
+     "my_applications",
+     "save_application_details",
+     "scheme_info",
+     "submit_application",
+     "withdraw_application"
+    ]
+   },
+   "at": "2026-10-16T15:07:14"
+  },
+  {
+   "step": "Citizen: Claude Code (Haiku) chose the tools and applied",
+   "passed": true,
+   "evidence": {
+    "tools": [
+     "my_applications",
+     "scheme_info",
+     "check_eligibility",
+     "save_application_details",
+     "Bash",
+     "Bash",
+     "save_application_details",
+     "submit_application"
+    ]
+   },
+   "at": "2026-10-16T15:07:50"
+  },
+  {
+   "step": "Database: application in the original PostgreSQL",
+   "passed": true,
+   "evidence": {
+    "row": [
+     "SSP26786495",
+     "PENDING",
+     "Sabitri Bora",
+     "21/04/1951"
+    ],
+    "audit_note": "AI assistant (Standard MCP OAuth client (e2e))"
+   },
+   "at": "2026-10-16T15:07:50"
+  },
+  {
+   "step": "Officer: standard OAuth client gets the officer sign-in (not the citizen OTP)",
+   "passed": true,
+   "evidence": {
+    "scope_requested": "officer",
+    "resource": "http://localhost:8102/mcp",
+    "consent_page": "Allow this application?",
+    "tools_listed": [
+     "find_application",
+     "pending_queue",
+     "record_decision",
+     "review_application"
+    ]
+   },
+   "at": "2026-10-16T15:07:52"
+  },
+  {
+   "step": "Officer: Claude Code (Haiku) reviewed and approved, against her name",
+   "passed": true,
+   "evidence": {
+    "tools": [
+     "review_application",
+     "review_application",
+     "record_decision"
+    ],
+    "db": [
+     [
+      "APPROVED",
+      "rina.sonari"
+     ]
+    ],
+    "audit": [
+     "Officer checked the Elector Photo ID card (PVL8652709) against the application form: name Sabitri Bora and DOB 21/04/1951 match; applicant is 75, eligible (60+). POSSIBLE_DUPLICATE_BENEFICIARY warning (SSP26791809, Teliagaon, Rajapara block) was reported to the officer; it was not checked from the Sonari login. | by Rina Gogoi | via AI assistant",
+     "admin:rina.sonari"
+    ]
+   },
+   "at": "2026-10-16T15:08:20"
+  },
+  {
+   "step": "Citizen: follow-up through the assistant shows the decision",
+   "passed": true,
+   "evidence": {
+    "tools": [
+     "my_applications"
+    ],
+    "assistant_said": "Your mother's pension application is **approved**.\n\n- **Application number:** SSP26786495\n- **Applicant:** Sabitri Bora, Sonari block\n- **Submitted:** 16 Oct 2026\n- **Decided:** 16 Oct 2026, by the block officer\n- **Payment:** Rs 250 a month, to the bank account ending in 4455\n\nThe record shows the "
+   },
+   "at": "2026-10-16T15:08:29"
+  },
+  {
+   "step": "Status portal (web) shows the same record",
+   "passed": true,
+   "evidence": {
+    "application_no_on_page": true,
+    "status_on_page": "APPROVED"
+   },
+   "at": "2026-10-16T15:08:29"
+  },
+  {
+   "step": "Sign-out: the next call is refused",
+   "passed": true,
+   "evidence": {
+    "status": 401
+   },
+   "at": "2026-10-16T15:08:29"
+  }
+ ],
+ "transcripts": {
+  "citizen_apply": [
+   {
+    "role": "person",
+    "text": "Please apply for the old age pension for my mother. We signed in with her mobile."
+   },
+   {
+    "role": "assistant",
+    "text": "There's no pension application on this mobile yet, and the application window is open until **31 October 2026, 11:59 PM IST**, so there's time.\n\nTo start, I need these details from your mother's documents:\n\n1. **Full name**, as written on her age proof\n2. **Date of birth**, as written on her age proof\n3. **Village or town**, and her **block**: Sonari, Rajapara, Dhemaji Pathar, Borgaon, Namti or Khelua\n4. **Marital status**: married, unmarried or widowed. If widowed, her late husband's name.\n5. **Bank account number and IFSC code**, copied from her passbook\n6. **An age proof**: a birth certificate, school leaving certificate or Voter ID, as a photo or PDF up to 5 MB. I can send you an upload link that opens on a phone.\n\nSend whatever you have. I'll check her eligibility once I have her date of birth, and I won't guess any of the values.",
+    "tools": [
+     {
+      "name": "ToolSearch",
+      "input": {
+       "query": "select:mcp__sewasetu__check_eligibility,mcp__sewasetu__my_applications,mcp__sewasetu__save_application_details,mcp__sewasetu__scheme_info,mcp__sewasetu__get_age_proof_upload_link,mcp__sewasetu__submit_application",
+       "max_results": 6
+      },
+      "result": "[tool_reference] [tool_reference] [tool_reference] [tool_reference] [tool_reference] [tool_reference]"
+     },
+     {
+      "name": "mcp__sewasetu__my_applications",
+      "input": {},
+      "result": "{\n  \"mobile\": \"XXXXXX8600\",\n  \"applications\": [],\n  \"message\": \"No application has been made with this mobile number yet.\",\n  \"say_to_applicant\": \"There is no pension application with this mobile number yet.\"\n}"
+     },
+     {
+      "name": "mcp__sewasetu__scheme_info",
+      "input": {},
+      "result": "{\n  \"scheme\": \"Old Age Pension Scheme, Department of Social Welfare, Government of Purvanchal\",\n  \"amount\": \"Rs 250 per month, paid by DBT into the applicant's own bank account\",\n  \"who_can_apply\": \"residents of Purvanchal aged 60 or above on the day of applying\",\n  \"one_application\": \"one active application per mobile number. Two people cannot hold applications on the same number. Someone without a phone of her own can use a family member's number that has no application; it becomes her login and receives her SMS\",\n  \"documents\": [\n    \"one age proof: birth certificate, school leaving certificate or Voter ID (photo or PDF, up to 5 MB)\",\n    \"bank account number and IFSC (from the passbook)\"\n  ],\n  \"application_window\": {\n    \"closes\": \"31 October 2026, 11:59 PM IST\",\n    \"open\": true,\n    \"hours_left\": 368\n  },\n  \"processing\": \"a block officer decides within 15 days; if not, the application stands approved automatically (Purvanchal Right to Public Services Act)\",\n  \"blocks\": [\n    \"Sonari\",\n    \"Rajapara\",\n    \"Dhemaji Pathar\",\n    \"Borgaon\",\n    \"Namti\",\n    \"Khelua\"\n  ],\n  \"blocks_served_by_assistant\": [\n    \"Sonari\",\n    \"Rajapara\",\n    \"Dhemaji Pathar\",\n    \"Borgaon\",\n    \"Namti\",\n    \"Khelua\"\n  ],\n  \"other_blocks\": \"applicants from other blocks apply on the portal website or at the Block Development Office; same scheme, same rules\",\n  \"signed_in_mobile\": \"XXXXXX8600\",\n  \"status_portal\": \"http://localhost:8000/status (mobile number + date of birth as DDMMYYYY)\",\n  \"help\""
+     }
+    ],
+    "error": null
+   },
+   {
+    "role": "person",
+    "text": "Sabitri Bora, born 21/04/1951, female, widow, village Lakhipur, Sonari block. Bank account XXXXXXXX4455, IFSC SBIN0003077. Her voter ID photo is sabitri_voter_id.jpg in this folder."
+   },
+   {
+    "role": "assistant",
+    "text": "Everything is saved and the age proof is uploaded, but I haven't submitted yet. Your mother has to confirm the details first.\n\nPlease read these to her in your language and check each one:\n\n- **Name:** Sabitri Bora\n- **Date of birth:** 21/04/1951 (she is 75)\n- **Gender and status:** Female, widowed\n- **Village and block:** Lakhipur, Sonari\n- **Bank account:** XXXXXXXX4455\n- **IFSC:** SBIN0003077\n- **Age proof:** Voter ID photo received\n\nThe declaration says: *\"I hereby declare that the information furnished above is true to the best of my knowledge and belief. I understand that furnishing false information is punishable under applicable law and will result in cancellation of pension.\"*\n\nIf she agrees and everything is correct, tell me \"yes\" and I'll submit the application. If anything is wrong, tell me which field and I'll fix it.",
+    "tools": [
+     {
+      "name": "mcp__sewasetu__check_eligibility",
+      "input": {
+       "date_of_birth": "21/04/1951",
+       "block": "Sonari"
+      },
+      "result": "{\n  \"application_window\": {\n    \"closes\": \"31 October 2026, 11:59 PM IST\",\n    \"open\": true,\n    \"hours_left\": 368\n  },\n  \"date_of_birth_read_as\": \"21 April 1951\",\n  \"age_today\": 75,\n  \"can_apply_now\": true,\n  \"reasons\": [\n    \"meets the age rule; she can apply now\"\n  ]\n}"
+     },
+     {
+      "name": "mcp__sewasetu__save_application_details",
+      "input": {
+       "applicant_name": "Sabitri Bora",
+       "date_of_birth": "21/04/1951",
+       "gender": "Female",
+       "marital_status": "Widowed",
+       "village": "Lakhipur",
+       "block": "Sonari",
+       "bank_account_number": "XXXXXXXX4455",
+       "ifsc": "SBIN0003077"
+      },
+      "result": "{\n  \"saved_for_mobile\": \"XXXXXX8600\",\n  \"details\": {\n    \"applicant_name\": \"Sabitri Bora\",\n    \"date_of_birth\": \"21/04/1951\",\n    \"gender\": \"Female\",\n    \"marital_status\": \"Widowed\",\n    \"late_husband_name\": null,\n    \"village\": \"Lakhipur\",\n    \"block\": \"Sonari\",\n    \"bank_account_number\": \"XXXXXXXX4455\",\n    \"ifsc\": \"SBIN0003077\"\n  },\n  \"age_proof\": \"not uploaded: nothing has arrived through any upload link for this mobile. If she says she uploaded, the upload did not complete (link expired, or Upload not pressed): give a fresh link, or run the curl command if you have the file\",\n  \"missing\": [],\n  \"problems\": [],\n  \"age_proof_upload\": {\n    \"upload_link\": \"http://localhost:8000/u/[link-token]\",\n    \"valid_for_minutes\": 30,\n    \"one_use\": \"Each link stores one document. To replace a document, get a new link.\",\n    \"how\": \"Send her this link: she (or a family member) opens it on the phone and takes a photo of her birth certificate, school leaving certificate or Voter ID. If you can run shell commands and have the file, run the curl command instead.\",\n    \"curl\": \"curl -sS -H \\\"Accept: application/json\\\" -F \\\"document=@/path/to/age-proof.jpg\\\" http://localhost:8000/u/[link-token]\"\n  },\n  \"ready_to_submit\": false,\n  \"application_window\": {\n    \"closes\": \"31 October 2026, 11:59 PM IST\",\n    \"open\": true,\n    \"hours_left\": 368\n  },\n  \"next_step\": \"get her age proof uploaded with the link\",\n  \"notes\": [],\n  \"say_to_applicant\": \"I have saved "
+     },
+     {
+      "name": "Bash",
+      "input": {
+       "command": "ls -la /tmp/e2e-fl0d8v7l/ && file /tmp/e2e-fl0d8v7l/sabitri_voter_id.jpg 2>/dev/null",
+       "description": "Check the voter ID file exists in the working folder"
+      },
+      "result": "total 60\ndrwx------  2 root root  4096 Oct 16 15:07 .\ndrwxrwxrwt 16 root root  4096 Oct 16 15:07 ..\n-rw-r--r--  1 root root   907 Oct 16 15:07 mcp.json\n-rw-r--r--  1 root root 47217 Oct 16 15:07 sabitri_voter_id.jpg\n/tmp/e2e-fl0d8v7l/sabitri_voter_id.jpg: JPEG image data, JFIF standard 1.01, aspect ratio, density 1x1, segment length 16, baseline, precision 8, 900x560, components 3"
+     },
+     {
+      "name": "Bash",
+      "input": {
+       "command": "curl -sS -H \"Accept: application/json\" -F \"document=@/tmp/e2e-fl0d8v7l/sabitri_voter_id.jpg\" http://localhost:8000/u/[link-token]",
+       "description": "Upload the voter ID photo to the age proof link"
+      },
+      "result": "{\"message\":\"Age proof received for mobile XXXXXX8600. Go back to the assistant and say it is uploaded.\",\"ok\":true}"
+     },
+     {
+      "name": "mcp__sewasetu__save_application_details",
+      "input": {},
+      "result": "{\n  \"saved_for_mobile\": \"XXXXXX8600\",\n  \"details\": {\n    \"applicant_name\": \"Sabitri Bora\",\n    \"date_of_birth\": \"21/04/1951\",\n    \"gender\": \"Female\",\n    \"marital_status\": \"Widowed\",\n    \"late_husband_name\": null,\n    \"village\": \"Lakhipur\",\n    \"block\": \"Sonari\",\n    \"bank_account_number\": \"XXXXXXXX4455\",\n    \"ifsc\": \"SBIN0003077\"\n  },\n  \"age_proof\": \"uploaded (sabitri_voter_id.jpg)\",\n  \"missing\": [],\n  \"problems\": [],\n  \"ready_to_submit\": true,\n  \"application_window\": {\n    \"closes\": \"31 October 2026, 11:59 PM IST\",\n    \"open\": true,\n    \"hours_left\": 368\n  },\n  \"next_step\": \"Read these details back to her slowly (name, date of birth, village, block, bank account, IFSC) and the declaration. If she says yes, call submit_application with confirmed=true.\",\n  \"declaration\": \"I hereby declare that the information furnished above is true to the best of my knowledge and belief. I understand that furnishing false information is punishable under applicable law and will result in cancellation of pension.\",\n  \"notes\": [],\n  \"say_to_applicant\": \"I have everything. Please check: name Sabitri Bora; date of birth 21/04/1951; Female, Widowed; village Lakhipur, Sonari block; bank account XXXXXXXX4455, IFSC SBIN0003077; age proof received. If all of this is correct and you agree to the declaration, shall I submit the application?\"\n}"
+     }
+    ],
+    "error": null
+   },
+   {
+    "role": "person",
+    "text": "Yes, all correct. She agrees to the declaration. Please submit."
+   },
+   {
+    "role": "assistant",
+    "text": "Your mother's Old Age Pension application for Sabitri Bora has been submitted.\n\n- **Application number:** SSP26786495\n- **Status:** Pending, waiting for the block officer's decision\n- **Decision due by:** 31 October 2026. If no decision is made by then, the application is approved automatically under the Purvanchal Right to Public Services Act.\n- **SMS:** The application number was sent to the mobile number you signed in with.\n\nPlease keep the application number safe. To check the status later, use the status page at http://localhost:8000/status with the mobile number and her date of birth in DDMMYYYY format (21041951). You can also ask me to check.\n\nIf the pension is approved, Rs 250 a month will be paid by direct transfer into her bank account (XXXXXXXX4455).",
+    "tools": [
+     {
+      "name": "mcp__sewasetu__submit_application",
+      "input": {
+       "confirmed": true
+      },
+      "result": "{\n  \"submitted\": true,\n  \"application_no\": \"SSP26786495\",\n  \"status\": \"PENDING\",\n  \"status_meaning\": \"submitted, waiting for the block officer's decision\",\n  \"rights_clock\": {\n    \"submitted_on\": \"16 Oct 2026\",\n    \"decision_due_by\": \"31 Oct 2026\",\n    \"days_left_for_decision\": 15,\n    \"if_no_decision\": \"If the block officer does not decide by 31 Oct 2026, the application stands approved automatically (deemed approval, Purvanchal RTPS Act) in the nightly run after that date.\"\n  },\n  \"sms\": \"An SMS with the application number was handed to the SMS gateway for her mobile.\",\n  \"track\": \"Ask this assistant, or use http://localhost:8000/status with her mobile number and her date of birth as DDMMYYYY.\",\n  \"message\": \"Application SSP26786495 submitted. Please note this number.\",\n  \"say_to_applicant\": \"Your pension application is submitted. Your application number is SSP26786495; please keep it safe. The block officer should decide by 31 Oct 2026. If nobody decides by then, it is approved automatically.\"\n}"
+     }
+    ],
+    "error": null
+   }
+  ],
+  "officer_decide": [
+   {
+    "role": "person",
+    "text": "Find application SSP26786495 and review it, including the age proof."
+   },
+   {
+    "role": "assistant",
+    "text": "**SSP26786495: Sabitri Bora, Lakhipur village, Sonari block. Pending, deemed approval on 31 Oct 2026 at 15:07.**\n\n**Age proof: matches.** The attached Elector Photo Identity Card (No. PVL8652709) shows name \"Sabitri Bora\" and date of birth 21/04/1951, the same as the application. That makes her 75 today, so she meets the 60+ requirement. The card's address reads \"as per electoral roll\", so it doesn't confirm her village.\n\n**Other details**\n- Female, widowed, mobile and bank account ending 8600 and 4455, IFSC SBIN0003077.\n- The late husband's name field is blank even though marital status is \"Widowed\". This is not a blocking check, but you may want to confirm it before approving.\n- Submitted through an AI assistant with an OTP-verified mobile.\n\n**Flag: possible duplicate (warning)**\nThe system reports that application SSP26791809 has the same name, date of birth, bank account and gender. That one is pending from Teliagaon, Rajapara block, with a different mobile ending 0656. A person may hold only one pension. I can't open SSP26791809 from the Sonari login, so I couldn't compare the two cases. Checking it on the district login or the portal (or with field verification) would settle whether this is the same person applying twice.\n\n**Your decision**\nThe system allows approval, but it notes that approval needs a note. I haven't recorded anything. What do you decide: approve, or reject with a reason code? If you're not ready, the deadline is 31 Oct 2026 at 15:07, after which it is deemed approved automatically.\n\nPortal link: http://localhost:8000/admin/application/100049",
+    "tools": [
+     {
+      "name": "ToolSearch",
+      "input": {
+       "query": "select:mcp__sewasetu_officer__find_application,mcp__sewasetu_officer__review_application",
+       "max_results": 2
+      },
+      "result": "[tool_reference] [tool_reference]"
+     },
+     {
+      "name": "ToolSearch",
+      "input": {
+       "query": "select:mcp__sewasetu_officer__pending_queue",
+       "max_results": 1
+      },
+      "result": "[tool_reference]"
+     },
+     {
+      "name": "mcp__sewasetu_officer__review_application",
+      "input": {
+       "application_no": "SSP26786495",
+       "include_document": true
+      },
+      "result": "{\n  \"application_no\": \"SSP26786495\",\n  \"status\": \"PENDING\",\n  \"block\": \"Sonari\",\n  \"applicant_entered\": {\n    \"name\": \"Sabitri Bora\",\n    \"village\": \"Lakhipur\",\n    \"late_husband_name\": null\n  },\n  \"date_of_birth\": \"21/04/1951\",\n  \"age_at_application\": 75,\n  \"age_today\": 75,\n  \"gender\": \"Female\",\n  \"marital_status\": \"Widowed\",\n  \"mobile\": \"XXXXXX8600\",\n  \"bank_account\": \"XXXXXXXX4455\",\n  \"ifsc\": \"SBIN0003077\",\n  \"submitted\": \"2026-10-16 15:07\",\n  \"deemed_approval_after\": \"2026-10-31 15:07\",\n  \"decided\": null,\n  \"decided_by\": null,\n  \"checks\": [\n    {\n      \"code\": \"POSSIBLE_DUPLICATE_BENEFICIARY\",\n      \"severity\": \"warn\",\n      \"detail\": \"same name, same date of birth, same bank account, same gender as SSP26791809 (PENDING since 16 Oct 2026; Teliagaon, Rajapara block; mobile XXXXXX0656). One person may hold only one pension.\"\n    },\n    {\n      \"code\": \"VIA_ASSISTANT\",\n      \"severity\": \"info\",\n      \"detail\": \"submitted by the applicant through an AI assistant (OTP-verified mobile)\"\n    }\n  ],\n  \"approval_allowed\": true,\n  \"approval_needs_note\": true,\n  \"rejection_reasons\": {\n    \"BANK_NOT_IN_NAME\": \"bank account not in applicant's name\",\n    \"DUPLICATE_BENEFICIARY\": \"duplicate of an earlier beneficiary record\",\n    \"AGE_PROOF_ILLEGIBLE\": \"age proof document illegible\",\n    \"AGE_PROOF_MISMATCH\": \"age proof does not match stated date of birth\",\n    \"UNDER_AGE\": \"applicant below 60 years of age\",\n    \"OTHER\": \"other (see note)\"\n  },\n  \"audit_trail\": [\n    {\n      \"at\": \"2026-"
+     },
+     {
+      "name": "mcp__sewasetu_officer__review_application",
+      "input": {
+       "application_no": "SSP26791809",
+       "include_document": false
+      },
+      "result": "{\n  \"error\": \"No application SSP26791809 in Sonari.\"\n}"
+     }
+    ],
+    "error": null
+   },
+   {
+    "role": "person",
+    "text": "Approve it. I have checked the voter ID against the form."
+   },
+   {
+    "role": "assistant",
+    "text": "SSP26786495 (Sabitri Bora, Lakhipur, Sonari block) is approved. The decision is recorded against your name, and the SMS to the applicant has been handed to the gateway.\n\nThe note on the record says you checked the voter ID against the form (name and date of birth 21/04/1951 match, age 75). It also says the possible-duplicate warning against SSP26791809 (Teliagaon, Rajapara block) was reported to you but not checked from the Sonari login. If that warning needs resolving, it has to be checked on the district login or the portal, or with field verification.",
+    "tools": [
+     {
+      "name": "ToolSearch",
+      "input": {
+       "query": "select:mcp__sewasetu_officer__record_decision",
+       "max_results": 1
+      },
+      "result": "[tool_reference]"
+     },
+     {
+      "name": "mcp__sewasetu_officer__record_decision",
+      "input": {
+       "application_no": "SSP26786495",
+       "decision": "APPROVED",
+       "note": "Officer checked the Elector Photo ID card (PVL8652709) against the application form: name Sabitri Bora and DOB 21/04/1951 match; applicant is 75, eligible (60+). POSSIBLE_DUPLICATE_BENEFICIARY warning (SSP26791809, Teliagaon, Rajapara block) was reported to the officer; it was not checked from the Sonari login."
+      },
+      "result": "{\n  \"recorded\": true,\n  \"application_no\": \"SSP26786495\",\n  \"status\": \"APPROVED\",\n  \"decided_at\": \"2026-10-16 15:08\",\n  \"recorded_against\": \"Rina Gogoi (rina.sonari)\",\n  \"applicant_sms\": \"handed to the SMS gateway\",\n  \"message\": \"Application SSP26786495 approved. An SMS to the applicant was handed to the gateway.\"\n}"
+     }
+    ],
+    "error": null
+   }
+  ],
+  "citizen_follow_up": [
+   {
+    "role": "person",
+    "text": "What is the status of my mother's pension application now?"
+   },
+   {
+    "role": "assistant",
+    "text": "Your mother's pension application is **approved**.\n\n- **Application number:** SSP26786495\n- **Applicant:** Sabitri Bora, Sonari block\n- **Submitted:** 16 Oct 2026\n- **Decided:** 16 Oct 2026, by the block officer\n- **Payment:** Rs 250 a month, to the bank account ending in 4455\n\nThe record shows the decision was made the same day it was submitted, so the 31 Oct decision deadline no longer applies. The portal's record doesn't show when the first payment will arrive, so check with the bank if it doesn't come through.",
+    "tools": [
+     {
+      "name": "ToolSearch",
+      "input": {
+       "query": "select:mcp__sewasetu__my_applications",
+       "max_results": 1
+      },
+      "result": "[tool_reference]"
+     },
+     {
+      "name": "mcp__sewasetu__my_applications",
+      "input": {},
+      "result": "{\n  \"mobile\": \"XXXXXX8600\",\n  \"applications\": [\n    {\n      \"application_no\": \"SSP26786495\",\n      \"applicant_name\": \"Sabitri Bora\",\n      \"block\": \"Sonari\",\n      \"status\": \"APPROVED\",\n      \"meaning\": \"approved by the block officer; pension of Rs 250/month will be credited to the bank account\",\n      \"rights_clock\": {\n        \"submitted_on\": \"16 Oct 2026\",\n        \"decision_due_by\": \"31 Oct 2026\",\n        \"decided_on\": \"16 Oct 2026\"\n      },\n      \"bank_account\": \"XXXXXXXX4455\"\n    }\n  ],\n  \"say_to_applicant\": \"Your application SSP26786495 is approved by the block officer; pension of Rs 250/month will be credited to the bank account.\"\n}"
+     }
+    ],
+    "error": null
+   }
+  ]
+ }
+}

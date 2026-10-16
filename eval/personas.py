@@ -118,7 +118,7 @@ CITIZENS = [
         "setup": "pending_3_days_ago",
         "opening": "Maine 3 din pehle pension ke liye apply kiya tha. Kya hua? Paisa kab aayega?",
         "checks": [("application_count", {"n": 1}), ("field_equals", {"status": "PENDING"}),
-                   ("assistant_said", {"pattern": r"(automatic|deemed|स्वतः|अपने आप|RTPS|Right to Public Services|15 din|15 days|15 दिन)"})],
+                   ("assistant_said", {"pattern": r"(automatic|deemed|स्वतः|अपने आप|apne[- ]?aap|khud[- ]?ba[- ]?khud|RTPS|Right to Public Services|15 din|15 days|15 दिन)"})],
     },
     {
         "id": "bhupen-fudge",
