@@ -172,7 +172,7 @@
   "block": null,
   "why": "The Director will connect his officer's assistant and approve the application his citizen made.",
   "speaks": "busy officer, brisk English",
-  "goal": "See what is waiting for you, look at the newest case (Kamini Bora), and approve it if nothing is wrong.",
+  "goal": "See what is waiting for you, open the newest case at the top of the list (whatever its name), and approve it if nothing is wrong with it.",
   "opening": "What's waiting for me today? Show the newest first.",
   "checks": [
    "case_status"
