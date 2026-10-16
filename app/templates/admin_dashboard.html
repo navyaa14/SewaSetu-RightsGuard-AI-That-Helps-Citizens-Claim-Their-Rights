@@ -1,6 +1,9 @@
 {% extends "base.html" %}
 {% block content %}
 <h2>Dashboard</h2>
+<p class="note">Signed in as <b>{{ officer.full_name }}</b> ({{ officer.username }}) &middot;
+{% if officer.block %}{{ officer.block }} block{% else %}all blocks{% endif %} &middot;
+<a href="/admin/logout">Sign out</a></p>
 <p><a href="/admin/applications?status=PENDING">Pending</a> |
 <a href="/admin/applications?status=APPROVED">Approved</a> |
 <a href="/admin/applications?status=REJECTED">Rejected</a> |

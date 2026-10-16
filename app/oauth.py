@@ -199,7 +199,12 @@ def redirect_allowed(registered, uri):
 
 
 def _is_url_client(client_id):
-    return client_id.startswith("https://") or client_id.startswith("http://localhost")
+    # The portal fetches this URL itself, so plain-http/localhost metadata URLs would let any
+    # caller make the server request its own internal addresses. Allowed only in development.
+    if client_id.startswith("https://"):
+        host = (urlparse(client_id).hostname or "").lower()
+        return host not in LOOPBACK_HOSTS and not host.endswith(".internal")
+    return os.environ.get("SEWASETU_DEV") == "1" and client_id.startswith("http://localhost")
 
 
 def load_client(client_id):
@@ -279,6 +284,16 @@ def register():
 # authorization: validate -> login (citizen OTP / officer password) -> consent -> code
 # ---------------------------------------------------------------------------
 
+def resource_role(resource):
+    """Which role a resource (an MCP endpoint's canonical URL) belongs to, if configured."""
+    r = (resource or "").rstrip("/")
+    for role, env in (("citizen", "CITIZEN_MCP_URL"), ("officer", "OFFICER_MCP_URL")):
+        url = os.environ.get(env, "").rstrip("/")
+        if url and (r == url or r == url.rsplit("/mcp", 1)[0]):
+            return role
+    return None
+
+
 def _err_redirect(redirect_uri, state, error, desc):
     q = {"error": error, "error_description": desc, "iss": ISSUER}
     if state:
@@ -325,12 +340,18 @@ def authorize():
         return _err_redirect(redirect_uri, state, "unsupported_response_type", "only code is supported")
     if q.get("code_challenge_method", "S256") != "S256" or not q.get("code_challenge"):
         return _err_redirect(redirect_uri, state, "invalid_request", "PKCE with S256 is required")
-    scopes = [s for s in (q.get("scope") or "citizen").split() if s]
+    resource = q.get("resource") or ISSUER
+    # Generic clients sometimes add OpenID-style scopes; they grant nothing here, so ignore them.
+    scopes = [s for s in (q.get("scope") or "").split()
+              if s and s not in ("openid", "offline_access", "profile", "email")]
+    if not scopes:
+        # No scope asked for: infer it from the service the token is for, so an officer's
+        # assistant pointed at the officer endpoint gets the officer sign-in, not the OTP page.
+        scopes = [resource_role(resource) or "citizen"]
     unknown = [s for s in scopes if s not in SCOPES]
     if unknown or len(scopes) != 1:
         return _err_redirect(redirect_uri, state, "invalid_scope",
                              "request exactly one of: " + ", ".join(SCOPES))
-    resource = q.get("resource") or ISSUER
     rid = secrets.token_urlsafe(24)
     params = {
         "client_id": client_id, "client_name": client["client_name"], "redirect_uri": redirect_uri,
@@ -386,9 +407,9 @@ def login():
                     _update_request(rid, pending_mobile=mobile)
                     req["pending_mobile"] = mobile
         else:
-            if (portal.ADMIN_PASSWORD and request.form.get("username") == portal.ADMIN_USERNAME and
-                    request.form.get("password") == portal.ADMIN_PASSWORD):
-                _update_request(rid, subject="officer:" + portal.ADMIN_USERNAME)
+            officer = portal.officer_login(request.form.get("username"), request.form.get("password"))
+            if officer:
+                _update_request(rid, subject="officer:" + officer["username"])
                 return redirect(url_for("oauth.consent", rid=rid))
             flash("Invalid credentials.")
     return render_template("oauth_login.html", rid=rid, role=role,
@@ -591,7 +612,8 @@ def admin_tokens():
     if not session.get("admin"):
         return redirect(url_for("admin_login"))
     issued = None
-    if request.method == "POST" and not request.form.get("revoke_subject"):
+    if request.method == "POST" and not request.form.get("revoke_subject") \
+            and not request.form.get("revoke_jti"):
         label = (request.form.get("label") or "program").strip()[:100]
         audience = (request.form.get("audience") or "").strip() or ISSUER
         days = max(1, min(int(request.form.get("days") or 90), 365))
@@ -606,13 +628,19 @@ def admin_tokens():
                      datetime.now(), datetime.fromtimestamp(claims["exp"])))
         conn.commit()
         cur.close(); conn.close()
+    if request.method == "POST" and request.form.get("revoke_jti"):
+        conn = portal.get_db(); cur = conn.cursor()
+        cur.execute("UPDATE oauth_program_tokens SET revoked_at = %s WHERE jti = %s AND revoked_at IS NULL",
+                    (datetime.now(), request.form["revoke_jti"]))
+        flash("%d program token(s) revoked." % cur.rowcount)
+        conn.commit(); cur.close(); conn.close()
     if request.method == "POST" and request.form.get("revoke_subject"):
         n = _revoke_grants(request.form["revoke_subject"], request.form.get("token_hash") or None)
         flash("%d officer sign-in(s) ended." % n)
     conn = portal.get_db()
     cur = conn.cursor()
-    cur.execute("SELECT label, subject, audience, issued_by, created_at, expires_at FROM "
-                "oauth_program_tokens ORDER BY id DESC LIMIT 20")
+    cur.execute("SELECT label, subject, audience, issued_by, created_at, expires_at, jti, revoked_at "
+                "FROM oauth_program_tokens ORDER BY id DESC LIMIT 20")
     rows = cur.fetchall()
     cur.execute("SELECT client_name, kind, created_at FROM oauth_clients ORDER BY id DESC LIMIT 20")
     clients = cur.fetchall()

@@ -3,3 +3,4 @@ __pycache__/
 .env
 .venv/
 eval/.work/
+eval/fixtures/

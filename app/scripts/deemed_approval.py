@@ -11,6 +11,7 @@ Scheduled via cron, 02:00 daily. See deploy/crontab.
 
 import os
 import sys
+from zoneinfo import ZoneInfo
 import configparser
 from datetime import datetime, timedelta
 
@@ -25,35 +26,41 @@ with open(CONFIG_PATH) as fh:
     config.read_file(fh)
 
 SLA_DAYS = config.getint("pension", "sla_days")
-SMS_GATEWAY_URL = config.get("app", "sms_gateway_url")
+SMS_GATEWAY_URL = os.environ.get("SMS_GATEWAY_URL") or config.get("app", "sms_gateway_url")
+IST = ZoneInfo("Asia/Kolkata")
+
+
+def now_ist():
+    # The portal stores IST wall-clock times; the container clock may be UTC.
+    return datetime.now(IST).replace(tzinfo=None)
+
+
+def db(key, env):
+    return os.environ.get(env) or config.get("database", key)
 
 
 def main():
-    conn = psycopg2.connect(
-        host=config.get("database", "host"),
-        port=config.get("database", "port"),
-        dbname=config.get("database", "name"),
-        user=config.get("database", "user"),
-        password=config.get("database", "password"),
-    )
+    conn = psycopg2.connect(host=db("host", "DB_HOST"), port=db("port", "DB_PORT"),
+                            dbname=db("name", "DB_NAME"), user=db("user", "DB_USER"),
+                            password=db("password", "DB_PASSWORD"))
     cur = conn.cursor()
-    cutoff = datetime.now() - timedelta(days=SLA_DAYS)
+    now = now_ist()
+    cutoff = now - timedelta(days=SLA_DAYS)
     cur.execute(
         """UPDATE applications
            SET status = 'DEEMED_APPROVED', decided_at = %s, decided_by = 'RTPS-AUTO'
            WHERE status = 'PENDING' AND submitted_at < %s
-           RETURNING application_no, mobile""",
-        (datetime.now(), cutoff))
+           RETURNING id, application_no, mobile""",
+        (now, cutoff))
     rows = cur.fetchall()
-    cur.execute("SELECT id FROM applications WHERE status = 'DEEMED_APPROVED' "
-                "AND decided_by = 'RTPS-AUTO' AND decided_at >= %s",
-                (datetime.now() - timedelta(minutes=1),))
-    for (app_id,) in cur.fetchall():
+    # audit exactly the rows this run changed (the old "decided in the last minute" query
+    # double-logged when the job ran twice within a minute, e.g. the startup retry loop)
+    for app_id, _, _ in rows:
         cur.execute("INSERT INTO audit_log (application_id, action, actor, note, at) "
                     "VALUES (%s, 'DEEMED_APPROVED', 'system:rtps-cron', "
-                    "'not processed within SLA', %s)", (app_id, datetime.now()))
+                    "'not processed within SLA', %s)", (app_id, now))
     conn.commit()
-    for app_no, mobile in rows:
+    for _, app_no, mobile in rows:
         try:
             requests.post(SMS_GATEWAY_URL + "/api/send", json={
                 "to": mobile,
@@ -62,7 +69,7 @@ def main():
         except Exception:
             pass
     print("%s deemed approval: %d applications approved"
-          % (datetime.now().strftime("%Y-%m-%d %H:%M:%S"), len(rows)))
+          % (now_ist().strftime("%Y-%m-%d %H:%M:%S"), len(rows)))
     cur.close()
     conn.close()
 

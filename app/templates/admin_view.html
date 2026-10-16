@@ -12,11 +12,17 @@
   <tr><th>Block</th><td>{{ a[7] }}</td></tr>
   <tr><th>Bank Account</th><td>{{ a[8] }}</td></tr>
   <tr><th>IFSC</th><td>{{ a[9] }}</td></tr>
-  <tr><th>Document</th><td>{{ a[10] or '-' }}</td></tr>
+  <tr><th>Document</th><td>{% if a[10] %}<a href="/admin/document/{{ app_id }}" target="_blank">View age proof</a>{% else %}-{% endif %}</td></tr>
   <tr><th>Status</th><td><b>{{ a[11] }}</b></td></tr>
   <tr><th>Submitted</th><td>{{ a[12] }}</td></tr>
   <tr><th>Decided</th><td>{{ a[13] or '-' }} {% if a[14] %}by {{ a[14] }}{% endif %}</td></tr>
 </table>
+{% if flags %}
+<h3>Before you decide</h3>
+<table class="tbl" style="max-width:640px">
+{% for f in flags %}<tr><td style="color:{{ '#a33' if f.severity=='block' else ('#b36b00' if f.severity=='warn' else '#555') }}"><b>{{ f.code }}</b></td><td>{{ f.detail }}</td></tr>{% endfor %}
+</table>
+{% endif %}
 {% if a[11] == 'PENDING' %}
 <h3>Decision</h3>
 <form method="post" action="/admin/approve/{{ app_id }}" style="display:inline">
@@ -25,7 +31,11 @@
 </form>
 &nbsp;
 <form method="post" action="/admin/reject/{{ app_id }}" style="display:inline">
-  <input type="text" name="note" placeholder="Reason for rejection" style="max-width:300px">
+  <select name="reason_code" style="max-width:300px" required>
+    <option value="">-- Reason for rejection --</option>
+    {% for code, text in reasons.items() %}<option value="{{ code }}">{{ text }}</option>{% endfor %}
+  </select>
+  <input type="text" name="note" placeholder="Note (required for 'other')" style="max-width:240px">
   <button class="btn" style="background:#a33" type="submit">Reject</button>
 </form>
 {% endif %}
