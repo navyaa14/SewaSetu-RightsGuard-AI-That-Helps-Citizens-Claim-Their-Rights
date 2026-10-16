@@ -1,0 +1,29 @@
+services:
+  - type: web
+    name: sewasetu-rightsguard
+    runtime: python
+    region: singapore
+    plan: free
+    buildCommand: pip install -r app/requirements.txt
+    startCommand: python deploy/render_server.py
+    healthCheckPath: /healthz
+    autoDeployTrigger: commit
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.11
+      - key: PYTHONUNBUFFERED
+        value: "1"
+      - key: TZ
+        value: Asia/Kolkata
+      - key: DATABASE_URL
+        sync: false
+      - key: SECRET_KEY
+        generateValue: true
+      - key: ADMIN_USERNAME
+        value: admin
+      - key: ADMIN_PASSWORD
+        generateValue: true
+      - key: ADMIN_FULL_NAME
+        value: District Social Welfare Officer
+      - key: UPLOAD_DIR
+        value: /tmp/sewasetu-uploads
