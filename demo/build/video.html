@@ -1,0 +1,490 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Sewa Setu demo</title>
+<style>
+@font-face{font-family:"NotoBn";src:url(noto-sans-bengali-bengali-400-normal.woff2) format("woff2");font-weight:400}
+@font-face{font-family:"NotoBn";src:url(noto-sans-bengali-bengali-600-normal.woff2) format("woff2");font-weight:600}
+:root{--navy:#081a33;--navy2:#0c2649;--ink:#eaf1fb;--muted:#9fb3cf;--saffron:#f7931e;--saffron2:#ffb35c;
+--green:#2bb673;--red:#ff6b6b;--card:#ffffff;--line:rgba(255,255,255,.12);--term:#0d1117}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{width:1920px;height:1080px;overflow:hidden;background:var(--navy)}
+body{font-family:Inter,"NotoBn",sans-serif;color:var(--ink);-webkit-font-smoothing:antialiased}
+#stage{position:relative;width:1920px;height:1080px;overflow:hidden;
+background:radial-gradient(1200px 700px at 20% 10%,#12345f 0%,transparent 60%),
+radial-gradient(900px 600px at 90% 90%,#2a1f10 0%,transparent 60%),linear-gradient(160deg,#081a33,#0a2140 60%,#081a33)}
+#grid{position:absolute;inset:0;background-image:linear-gradient(rgba(255,255,255,.035) 1px,transparent 1px),
+linear-gradient(90deg,rgba(255,255,255,.035) 1px,transparent 1px);background-size:64px 64px}
+.scene{position:absolute;inset:0;display:none}
+.chapter{position:absolute;left:72px;top:46px;font-size:18px;letter-spacing:3px;text-transform:uppercase;color:var(--saffron2);font-weight:600}
+.chapter b{color:var(--ink);font-weight:600;letter-spacing:1px;text-transform:none;font-size:20px;margin-left:12px}
+.cap{position:absolute;left:72px;right:72px;bottom:58px;font-size:30px;font-weight:600;color:var(--ink)}
+.cap .s{color:var(--saffron2)}
+#progress{position:absolute;left:0;bottom:0;height:6px;background:linear-gradient(90deg,var(--saffron),var(--saffron2));z-index:50}
+#brand{position:absolute;right:56px;top:42px;font-size:17px;color:var(--muted);z-index:40;letter-spacing:.4px}
+#brand i{display:inline-block;width:10px;height:10px;border-radius:50%;background:var(--saffron);margin-right:8px;vertical-align:1px}
+
+/* title */
+.t-eyebrow{position:absolute;left:0;right:0;top:300px;text-align:center;font-size:20px;letter-spacing:6px;color:var(--saffron2);font-weight:600}
+.t-title{position:absolute;left:0;right:0;top:350px;text-align:center;font-size:150px;font-weight:800;letter-spacing:-4px;
+background:linear-gradient(180deg,#fff,#c9d9f0);-webkit-background-clip:text;color:transparent}
+.t-line{position:absolute;left:810px;width:300px;top:540px;height:5px;border-radius:3px;background:var(--saffron);transform-origin:center}
+.t-tag{position:absolute;left:0;right:0;text-align:center;font-size:42px;font-weight:500;color:#dbe6f5}
+.t-pills{position:absolute;left:0;right:0;top:820px;display:flex;justify-content:center;gap:18px}
+.pill{border:1px solid rgba(247,147,30,.5);background:rgba(247,147,30,.08);color:#ffd7a6;border-radius:999px;padding:12px 26px;font-size:22px;font-weight:500}
+
+/* problem */
+.quote{position:absolute;left:96px;top:190px;width:980px}
+.quote .mark{font-size:200px;line-height:1;color:var(--saffron);font-weight:800;height:120px;display:block}
+.quote .txt{font-size:46px;line-height:1.32;font-weight:500;color:#fff}
+.quote .by{margin-top:26px;font-size:22px;color:var(--muted)}
+.stats{position:absolute;right:96px;top:200px;width:620px;display:flex;flex-direction:column;gap:22px}
+.stat{background:rgba(255,255,255,.05);border:1px solid var(--line);border-radius:18px;padding:22px 30px}
+.stat .v{font-size:68px;font-weight:800;color:#fff;font-variant-numeric:tabular-nums;letter-spacing:-1px}
+.stat .v small{font-size:32px;color:var(--saffron2);font-weight:700;margin-left:6px}
+.stat .l{font-size:22px;color:var(--muted);margin-top:2px}
+
+/* diagram */
+svg text{font-family:Inter,sans-serif}
+.node rect{fill:rgba(255,255,255,.06);stroke:rgba(255,255,255,.22);stroke-width:2}
+.node.portal rect{fill:rgba(247,147,30,.10);stroke:var(--saffron)}
+.node.db rect{fill:rgba(43,182,115,.10);stroke:var(--green)}
+.node.auth rect{fill:rgba(120,170,255,.08);stroke:#7fb0ff;stroke-dasharray:8 6}
+.node .h{fill:#fff;font-size:26px;font-weight:700}
+.node .s{fill:#a9bcd6;font-size:19px}
+.node .m{fill:#ffcf96;font-size:18px;font-family:"DejaVu Sans Mono",monospace}
+.edge{fill:none;stroke:#8fb2e0;stroke-width:3}
+.edge.hot{stroke:var(--saffron)}
+.edge.auth{stroke:#7fb0ff;stroke-dasharray:6 8}
+.elabel{fill:#c6d6ee;font-size:17px}
+
+/* browser frame */
+.win{position:absolute;background:#1b2433;border-radius:14px;box-shadow:0 30px 80px rgba(0,0,0,.55),0 0 0 1px rgba(255,255,255,.08);overflow:hidden}
+.win .bar{height:44px;background:#222c3d;display:flex;align-items:center;padding:0 16px;gap:8px}
+.win .dot{width:13px;height:13px;border-radius:50%}
+.win .url{margin-left:18px;flex:1;height:28px;border-radius:8px;background:#121a27;color:#9fb3cf;font-size:15px;display:flex;align-items:center;padding:0 14px}
+.win .view{position:relative;overflow:hidden;background:#f0f2f5}
+.win .view img{position:absolute;left:0;top:0;transform-origin:0 0}
+.hl{position:absolute;border:4px solid var(--saffron);border-radius:10px;box-shadow:0 0 0 9999px rgba(8,26,51,.0),0 0 30px rgba(247,147,30,.6)}
+.steps{position:absolute;display:flex;flex-direction:column;gap:18px}
+.step{display:flex;gap:18px;align-items:flex-start;padding:18px 22px;border-radius:16px;border:1px solid var(--line);background:rgba(255,255,255,.04)}
+.step .n{flex:0 0 44px;height:44px;border-radius:50%;background:rgba(255,255,255,.1);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:20px}
+.step .tx{font-size:23px;line-height:1.35;color:#d9e4f3}
+.step .tx b{color:#fff}
+.step.on{border-color:var(--saffron);background:rgba(247,147,30,.10)}
+.step.on .n{background:var(--saffron);color:#1b1206}
+
+/* chat */
+.chat{position:absolute;background:var(--term);border-radius:16px;border:1px solid #273042;box-shadow:0 30px 80px rgba(0,0,0,.5);overflow:hidden}
+.chat .hd{height:56px;display:flex;align-items:center;gap:12px;padding:0 22px;background:#151b26;border-bottom:1px solid #273042;font-size:18px;color:#c9d4e5}
+.chat .hd .logo{width:26px;height:26px;border-radius:7px;background:linear-gradient(135deg,#d97757,#c15f3c)}
+.chat .hd .chipm{margin-left:auto;font-size:15px;color:#9fd8b6;border:1px solid #2f6b4c;background:#0f2a1d;border-radius:999px;padding:5px 12px}
+.chat .body{position:absolute;left:0;right:0;top:56px;bottom:0;padding:22px 26px;display:flex;flex-direction:column;justify-content:flex-end;gap:14px;overflow:hidden}
+.msg{max-width:88%;font-size:22px;line-height:1.42;border-radius:14px;padding:14px 18px}
+.msg.u{align-self:flex-end;background:#243b5c;color:#eef4ff;border-bottom-right-radius:4px}
+.msg.a{align-self:flex-start;background:#161d29;border:1px solid #273042;color:#dfe7f2;border-bottom-left-radius:4px}
+.msg .who{font-size:13px;letter-spacing:1.4px;text-transform:uppercase;color:#7f93ad;margin-bottom:4px;font-weight:600}
+.msg b{color:#fff}
+.msg .hi{color:var(--saffron2);font-weight:700}
+.tools{display:flex;flex-wrap:wrap;gap:8px;align-self:flex-start}
+.tool{font-family:"DejaVu Sans Mono",monospace;font-size:16px;color:#ffd39e;background:#2a1e0e;border:1px solid #6b4a1d;border-radius:8px;padding:6px 10px}
+.tool.sh{color:#b9d7ff;background:#0f1d33;border-color:#2b4c7e}
+.tool.ok{color:#9fe0bd;background:#0f2a1d;border-color:#2f6b4c}
+.w{opacity:0}
+
+/* state panel */
+.panel{position:absolute;background:rgba(255,255,255,.04);border:1px solid var(--line);border-radius:18px;padding:26px 28px}
+.panel h3{font-size:16px;letter-spacing:2.5px;text-transform:uppercase;color:var(--muted);font-weight:600;margin-bottom:18px}
+.chk{display:flex;align-items:center;gap:14px;font-size:22px;color:#c7d4e6;margin:13px 0}
+.chk .bx{width:30px;height:30px;border-radius:8px;border:2px solid #3b4f6d;display:flex;align-items:center;justify-content:center;font-weight:800;color:#06210f;font-size:19px}
+.chk.on .bx{background:var(--green);border-color:var(--green)}
+.chk.on{color:#fff}
+.appno{margin-top:22px;padding:20px;border-radius:14px;background:linear-gradient(135deg,rgba(247,147,30,.18),rgba(247,147,30,.05));border:1px solid rgba(247,147,30,.55)}
+.appno .k{font-size:15px;letter-spacing:2px;color:#ffcf96;text-transform:uppercase}
+.appno .v{font-size:46px;font-weight:800;color:#fff;letter-spacing:1px;font-family:"DejaVu Sans Mono",monospace}
+.clock{display:flex;align-items:center;gap:22px;margin-top:20px}
+.clock svg{flex:0 0 120px}
+.clock .t1{font-size:22px;color:#fff;font-weight:600}
+.clock .t2{font-size:18px;color:var(--muted);margin-top:4px;line-height:1.35}
+.idcard{margin-top:14px;width:100%;border-radius:10px;border:2px solid #2f6b4c}
+
+/* queue table */
+.q{width:100%;border-collapse:collapse;font-size:19px}
+.q td{padding:11px 8px;border-bottom:1px solid var(--line);color:#d9e4f3}
+.q td.no{font-family:"DejaVu Sans Mono",monospace;font-size:16px;color:#9fb3cf}
+.flag{font-size:13px;font-weight:700;border-radius:6px;padding:3px 8px;letter-spacing:.4px;white-space:nowrap}
+.flag.w{background:rgba(255,179,92,.16);color:#ffc27a;opacity:1}
+.flag.i{background:rgba(127,176,255,.14);color:#a9c8ff}
+.flag.g{background:rgba(43,182,115,.16);color:#7fe0ad}
+.flag.r{background:rgba(255,107,107,.16);color:#ff9d9d}
+.row-hl{background:rgba(247,147,30,.10)}
+.match{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.match span{font-size:16px;border-radius:6px;padding:5px 10px;background:rgba(255,179,92,.16);color:#ffc27a;font-weight:600}
+.verdict{margin-top:16px;border-radius:12px;padding:16px 18px;font-size:22px;font-weight:700;display:flex;align-items:center;gap:12px}
+.verdict.ok{background:rgba(43,182,115,.15);border:1px solid var(--green);color:#a8f0c9}
+.verdict.no{background:rgba(255,107,107,.12);border:1px solid #ff8a8a;color:#ffc1c1}
+.verdict small{display:block;font-size:16px;font-weight:500;color:#c7d4e6;margin-top:2px}
+
+/* guardrails */
+.cards{position:absolute;left:72px;right:72px;top:150px;display:grid;grid-template-columns:repeat(3,1fr);gap:24px}
+.gc{background:rgba(255,255,255,.045);border:1px solid var(--line);border-radius:18px;padding:24px 26px;height:340px;display:flex;flex-direction:column}
+.gc .sc{font-size:15px;letter-spacing:2px;text-transform:uppercase;color:var(--saffron2);font-weight:700}
+.gc .tt{font-size:27px;font-weight:700;color:#fff;margin:8px 0 14px;line-height:1.25}
+.gc .qq{font-size:20px;line-height:1.45;color:#d4dfee;border-left:3px solid #3b4f6d;padding-left:14px;flex:1}
+.gc .qq.bn{font-family:"NotoBn",Inter,sans-serif;font-size:21px}
+.gc .res{margin-top:14px;font-size:19px;font-weight:700;color:#7fe0ad}
+
+/* evals */
+.bars{position:absolute;left:96px;top:190px;width:760px;height:560px}
+.ebar{position:absolute;bottom:80px;width:110px;border-radius:12px 12px 4px 4px;background:linear-gradient(180deg,#3a6db0,#1d3f6e)}
+.ebar.best{background:linear-gradient(180deg,var(--saffron2),var(--saffron))}
+.ebar .bv{position:absolute;top:-46px;left:-20px;right:-20px;text-align:center;font-size:28px;font-weight:800;color:#fff}
+.ebar .bl{position:absolute;bottom:-62px;left:-30px;right:-30px;text-align:center;font-size:17px;color:var(--muted);line-height:1.2}
+.bigstat{position:absolute;left:96px;top:800px;width:840px;font-size:24px;line-height:1.4;color:#dbe6f5}
+.bigstat b{display:block;font-size:48px;color:#7fe0ad;margin-right:10px}
+
+/* close */
+.c-big{position:absolute;left:0;right:0;top:250px;text-align:center;font-size:76px;font-weight:800;letter-spacing:-1.5px;line-height:1.15}
+.c-big .s{color:var(--saffron2)}
+.c-list{position:absolute;left:330px;right:330px;top:520px;display:flex;flex-direction:column;gap:20px}
+.c-item{font-size:30px;color:#dbe6f5;display:flex;gap:18px;align-items:baseline}
+.c-item b{color:var(--saffron2);font-size:26px;font-family:"DejaVu Sans Mono",monospace}
+.c-foot{position:absolute;left:0;right:0;top:900px;text-align:center;font-size:24px;color:var(--muted)}
+</style>
+</head>
+<body>
+<div id="stage">
+<div id="grid"></div>
+<div id="brand"><i></i>Sewa Setu Assistant</div>
+
+<!-- ========== S1 TITLE 0-7 ========== -->
+<section class="scene" data-start="0" data-end="7">
+  <div class="t-eyebrow" data-in="0.3">BUILD FOR BHARAT FELLOWSHIP · AI TRACK</div>
+  <div class="t-title" data-in="0.6" data-anim="scale">Sewa Setu</div>
+  <div class="t-line" data-in="1.1" data-anim="grow"></div>
+  <div class="t-tag" style="top:590px" data-in="1.5">Any AI assistant can now apply for an old age pension</div>
+  <div class="t-tag" style="top:648px;color:var(--saffron2);font-weight:600" data-in="2.1">by the same rules as the counter.</div>
+  <div class="t-pills">
+    <span class="pill" data-in="3.0" data-anim="pop">Citizen MCP</span>
+    <span class="pill" data-in="3.25" data-anim="pop">Block-officer MCP</span>
+    <span class="pill" data-in="3.5" data-anim="pop">OAuth 2.1 on the portal</span>
+    <span class="pill" data-in="3.75" data-anim="pop">Tested with Claude Code + Haiku</span>
+  </div>
+</section>
+
+<!-- ========== S2 PROBLEM 7-19 ========== -->
+<section class="scene" data-start="7" data-end="19" data-chapter="01 · The problem">
+  <div class="chapter" data-in="0.1">01<b>The problem</b></div>
+  <div class="quote">
+    <span class="mark" data-in="0.3" data-anim="scale">“</span>
+    <div class="txt" data-type="0.6" data-wps="7.5">A woman of 70 came to the counter with her grandson. On the bus, he had asked an AI assistant on his phone to apply for her pension. **It could not.**</div>
+    <div class="by" data-in="4.8">From the Director's note, Department of Social Welfare</div>
+  </div>
+  <div class="stats">
+    <div class="stat" data-in="1.4" data-anim="left"><div class="v"><span data-count="100000" data-in="1.4" data-dur="1.6"></span></div><div class="l">applications already in the portal</div></div>
+    <div class="stat" data-in="2.0" data-anim="left"><div class="v">₹<span data-count="250" data-in="2.0" data-dur="1.2"></span><small>/ month</small></div><div class="l">for every resident aged 60 or above</div></div>
+    <div class="stat" data-in="2.6" data-anim="left"><div class="v"><span data-count="15" data-in="2.6" data-dur="1.0"></span><small>days</small></div><div class="l">then the law approves it automatically</div></div>
+  </div>
+  <div class="cap" data-in="6.4">“If these assistants can book flights, <span class="s">why can they not help a widow apply?”</span></div>
+</section>
+
+<!-- ========== S3 ARCHITECTURE 19-33 ========== -->
+<section class="scene" data-start="19" data-end="33">
+  <div class="chapter" data-in="0.1">02<b>One rulebook, two doors</b></div>
+  <svg width="1920" height="1080" style="position:absolute;left:0;top:0">
+    <defs><marker id="ar" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto"><path d="M0,0 L12,6 L0,12 z" fill="#8fb2e0"/></marker>
+      <marker id="arh" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto"><path d="M0,0 L12,6 L0,12 z" fill="#f7931e"/></marker></defs>
+    <g class="node" data-in="0.4" data-anim="up"><rect x="80" y="230" width="380" height="120" rx="18"/><text class="h" x="110" y="282">Citizen's AI assistant</text><text class="s" x="110" y="318">Claude, ChatGPT, any MCP client</text></g>
+    <g class="node" data-in="0.7" data-anim="up"><rect x="80" y="610" width="380" height="120" rx="18"/><text class="h" x="110" y="662">Officer's AI assistant</text><text class="s" x="110" y="698">the block officer's own copilot</text></g>
+    <g class="node" data-in="1.2" data-anim="up"><rect x="600" y="230" width="380" height="120" rx="18"/><text class="h" x="630" y="282">Citizen MCP</text><text class="m" x="630" y="318">/citizen/mcp · 7 tools</text></g>
+    <g class="node" data-in="1.5" data-anim="up"><rect x="600" y="610" width="380" height="120" rx="18"/><text class="h" x="630" y="662">Officer MCP</text><text class="m" x="630" y="698">/officer/mcp · 4 tools</text></g>
+    <g class="node auth" data-in="2.6" data-anim="up"><rect x="560" y="420" width="460" height="120" rx="18"/><text class="h" x="590" y="470">OAuth 2.1 sign-in on the portal</text><text class="s" x="590" y="506">OTP for citizens · named officer login</text></g>
+    <g class="node portal" data-in="3.4" data-anim="up"><rect x="1140" y="300" width="660" height="290" rx="20"/><text class="h" x="1172" y="356" style="font-size:32px">Sewa Setu portal</text><text class="s" x="1172" y="396">the same functions the web form uses</text>
+      <text class="m" x="1172" y="446">validate_application()</text><text class="m" x="1172" y="480">create_application()</text><text class="m" x="1172" y="514">decide_application()</text><text class="m" x="1172" y="548">review_flags()</text></g>
+    <g class="node db" data-in="4.2" data-anim="up"><rect x="1140" y="660" width="660" height="110" rx="20"/><text class="h" x="1172" y="708">PostgreSQL: the system of record</text><text class="s" x="1172" y="742">one active application per mobile, enforced by the database</text></g>
+    <g class="node" data-in="4.6" data-anim="up"><rect x="1140" y="140" width="660" height="100" rx="18"/><text class="h" x="1172" y="186">Web form · counter · admin screens</text><text class="s" x="1172" y="218">unchanged, and showing the same records</text></g>
+    <path class="edge" d="M460,290 L596,290" marker-end="url(#ar)" data-draw="1.6"/>
+    <path class="edge" d="M460,670 L596,670" marker-end="url(#ar)" data-draw="1.9"/>
+    <path class="edge auth" d="M790,354 L790,416" data-draw="2.9"/>
+    <path class="edge auth" d="M790,606 L790,544" data-draw="3.0"/>
+    <path class="edge hot" d="M980,290 C1060,290 1060,400 1136,400" marker-end="url(#arh)" data-draw="3.8"/>
+    <path class="edge hot" d="M980,670 C1060,670 1060,500 1136,500" marker-end="url(#arh)" data-draw="4.0"/>
+    <path class="edge" d="M1470,590 L1470,656" marker-end="url(#ar)" data-draw="4.5"/>
+    <path class="edge" d="M1470,240 L1470,296" marker-end="url(#ar)" data-draw="4.9"/>
+    <text class="elabel" x="470" y="330" data-in="2.2" style="font-size:15px"><tspan x="470">token for this</tspan><tspan x="470" dy="20">server only</tspan></text>
+    <text class="elabel" x="80" y="790" data-in="5.4">A citizen's assistant never even sees the officer's tools.</text>
+  </svg>
+  <div class="cap" data-in="6.6">No rule is rewritten for AI. <span class="s">The portal stays the system of record.</span></div>
+</section>
+
+<!-- ========== S4 SIGN-IN 33-47 ========== -->
+<section class="scene" data-start="33" data-end="47">
+  <div class="chapter" data-in="0.1">03<b>Signing in, the citizen's way</b></div>
+  <div class="win" style="left:72px;top:120px;width:1140px;height:757px" data-in="0.2" data-anim="up">
+    <div class="bar"><span class="dot" style="background:#ff5f57"></span><span class="dot" style="background:#febc2e"></span><span class="dot" style="background:#28c840"></span><span class="url">Sewa Setu portal · sign in</span></div>
+    <div class="view" style="height:713px">
+      <img src="img/c_login_mobile.png" style="width:1140px" data-in="0.3" data-out="3.6">
+      <img src="img/c_gateway.png" style="width:1140px" data-in="3.6" data-out="6.6">
+      <img src="img/c_login_otp.png" style="width:1140px" data-in="6.6" data-out="9.2">
+      <img src="img/c_consent.png" style="width:1140px" data-kb="0 0 1 -120 -40 1.18" data-kbin="9.2" data-kbout="13.8" data-in="9.2">
+      <div class="hl" style="left:14px;top:104px;width:1110px;height:30px" data-in="4.2" data-out="6.4"></div>
+    </div>
+  </div>
+  <div class="steps" style="left:1260px;top:150px;width:590px">
+    <div class="step" data-in="0.5" data-on="0.5" data-off="3.6"><div class="n">1</div><div class="tx">Claude Code finds the portal's sign-in by itself <b>(protected-resource metadata)</b></div></div>
+    <div class="step" data-in="0.8" data-on="3.6" data-off="9.2"><div class="n">2</div><div class="tx">The OTP goes to <b>her phone</b>. The AI never sees it.</div></div>
+    <div class="step" data-in="1.1" data-on="9.2" data-off="12"><div class="n">3</div><div class="tx">She approves exactly what it may do, <b>on the portal's own page</b></div></div>
+    <div class="step" data-in="1.4" data-on="12" data-off="99"><div class="n">4</div><div class="tx">The token works <b>for this server only</b>, ends after 2 hours, and stops at once if she signs out</div></div>
+  </div>
+</section>
+
+<!-- ========== S5 CITIZEN 47-83 ========== -->
+<section class="scene" data-start="47" data-end="83">
+  <div class="chapter" data-in="0.1">04<b>Kamala applies (real session: Claude Code, model Haiku)</b></div>
+  <div class="chat" style="left:72px;top:110px;width:1080px;height:900px" data-in="0.2" data-anim="up">
+    <div class="hd"><span class="logo"></span>Claude Code · haiku<span class="chipm">● sewasetu (citizen) connected</span></div>
+    <div class="body">
+      <div class="msg u stack" data-in="0.6"><div class="who">Grandson, on the bus</div><span data-type="0.7" data-wps="9">hi, my nani needs the old age pension. can you apply for her? we signed in with her number</span></div>
+      <div class="tools stack" data-in="2.6"><span class="tool">my_applications</span><span class="tool">scheme_info</span></div>
+      <div class="msg a stack" data-in="3.4"><div class="who">Assistant</div><span data-type="3.5" data-wps="13">Nani doesn't have a pension application on this number yet. The window is open until **31 October 2026.** I need her details from her documents. **I won't guess any of these.**</span></div>
+      <div class="msg u stack" data-in="8.4"><div class="who">Grandson</div><span data-type="8.5" data-wps="14">Kamala Das, born 12/03/1952, female, widow. village Lakhipur, Sonari block. bank 30418822917, IFSC SBIN0003077. her voter id photo is kamala_voter_id.jpg in this folder</span></div>
+      <div class="tools stack" data-in="11.6"><span class="tool">save_application_details</span><span class="tool sh">Read kamala_voter_id.jpg</span><span class="tool sh">curl -F document=@… /u/••••</span><span class="tool">save_application_details</span></div>
+      <div class="msg a stack" data-in="13.2"><div class="who">Assistant</div><span data-type="13.3" data-wps="13">The name and date of birth on the card match what she gave, so I've uploaded it. Please read these back to her: **Kamala Das · 12 March 1952 · Lakhipur, Sonari · a/c 30418822917 · IFSC SBIN0003077.** She must also agree to the declaration. I'll wait for her yes.</span></div>
+      <div class="msg u stack" data-in="20.6"><div class="who">Grandson</div><span data-type="20.7" data-wps="9">yes everything is correct, nani agrees to the declaration. please submit</span></div>
+      <div class="tools stack" data-in="22.6"><span class="tool ok">submit_application(confirmed=true)</span></div>
+      <div class="msg a stack" data-in="23.4"><div class="who">Assistant</div><span data-type="23.5" data-wps="12">Submitted. Application number <span class="hi">SSP26838227</span>. Decision due by **31 October 2026**. If nobody decides by then, it is approved automatically. The SMS has been handed to the gateway.</span></div>
+    </div>
+  </div>
+  <div class="panel" style="left:1190px;top:110px;width:658px;height:900px" data-in="0.5" data-anim="left">
+    <h3>Portal · live state for mobile ••••2378</h3>
+    <div class="chk on" data-in="0.8"><span class="bx">✓</span>Signed in by OTP on the portal</div>
+    <div class="chk" data-on="2.9"><span class="bx">✓</span>Checked: no existing application</div>
+    <div class="chk" data-on="12.0"><span class="bx">✓</span>Details saved and validated by the portal</div>
+    <div class="chk" data-on="12.8"><span class="bx">✓</span>Age proof uploaded (one-time link)</div>
+    <img class="idcard" src="img/kamala_voter_id.jpg" data-in="12.6" data-anim="scale">
+    <div class="chk" data-on="21.0"><span class="bx">✓</span>Read back · she said yes</div>
+    <div class="appno" data-in="23.0" data-anim="pop">
+      <div class="k">Application number</div><div class="v">SSP26838227</div>
+      <div class="clock"><svg width="120" height="120" viewBox="0 0 120 120"><circle cx="60" cy="60" r="50" stroke="rgba(255,255,255,.12)" stroke-width="10" fill="none"/>
+        <circle cx="60" cy="60" r="50" stroke="#f7931e" stroke-width="10" fill="none" stroke-linecap="round" transform="rotate(-90 60 60)" data-ring="23.6" stroke-dasharray="314" stroke-dashoffset="314"/>
+        <text x="60" y="58" text-anchor="middle" fill="#fff" font-size="34" font-weight="800">15</text><text x="60" y="82" text-anchor="middle" fill="#ffcf96" font-size="15">days</text></svg>
+        <div><div class="t1">Rights clock started</div><div class="t2">Decision due by 31 Oct 2026.<br>Otherwise it is deemed approved by law.</div></div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ========== S6 SAME RECORD 83-95 ========== -->
+<section class="scene" data-start="83" data-end="95">
+  <div class="chapter" data-in="0.1">05<b>Same record, every channel</b></div>
+  <div class="win" style="left:72px;top:130px;width:820px;height:560px" data-in="0.3" data-anim="up">
+    <div class="bar"><span class="dot" style="background:#ff5f57"></span><span class="dot" style="background:#febc2e"></span><span class="dot" style="background:#28c840"></span><span class="url">Status portal · mobile + date of birth</span></div>
+    <div class="view" style="height:516px"><img src="img/c_status.png" style="width:1440px" data-kb="-200 -110 0.82 -230 -130 0.86" data-kbin="0" data-kbout="12"></div>
+  </div>
+  <div class="win" style="left:930px;top:130px;width:330px;height:640px;border-radius:38px" data-in="1.0" data-anim="up">
+    <div class="view" style="height:640px;border-radius:38px"><img src="img/c_upload_phone.png" style="width:330px"></div>
+  </div>
+  <div class="win" style="left:1300px;top:130px;width:548px;height:760px" data-in="1.7" data-anim="up">
+    <div class="bar"><span class="dot" style="background:#ff5f57"></span><span class="dot" style="background:#febc2e"></span><span class="dot" style="background:#28c840"></span><span class="url">Admin · audit trail</span></div>
+    <div class="view" style="height:716px"><img src="img/a_view_pending.png" style="width:1440px" data-kb="-226 -443 0.82 -226 -443 0.82" data-kbin="0" data-kbout="12">
+      <div class="hl" style="left:8px;top:118px;width:532px;height:38px" data-in="3.4" data-out="5.6"></div>
+      <div class="hl" style="left:8px;top:327px;width:532px;height:38px" data-in="5.8"></div></div>
+  </div>
+  <div style="position:absolute;left:72px;top:720px;width:820px;font-size:24px;line-height:1.45;color:#d4dfee" data-in="2.6">
+    <b style="color:#fff">Status portal:</b> the grandmother sees SSP26838227 with her usual login.<br>
+    <b style="color:#fff">Phone:</b> the upload link opens in any phone browser and works once.<br>
+    <b style="color:#fff">Audit:</b> <span style="color:var(--saffron2)">SUBMIT · applicant:9864012378 · AI assistant (Claude Code)</span></div>
+  <div class="cap" data-in="6.0">Made through an AI. <span class="s">Visible on the counter's own screens.</span></div>
+</section>
+
+<!-- ========== S7 OFFICER 95-127 ========== -->
+<section class="scene" data-start="95" data-end="127">
+  <div class="chapter" data-in="0.1">06<b>Rina Gogoi, Block Officer, Sonari (real session)</b></div>
+  <div class="chat" style="left:72px;top:110px;width:980px;height:900px" data-in="0.2" data-anim="up">
+    <div class="hd"><span class="logo"></span>Claude Code · haiku<span class="chipm">● sewasetu-officer · signed in as rina.sonari</span></div>
+    <div class="body">
+      <div class="msg u stack" data-in="0.6"><div class="who">Rina</div><span data-type="0.7" data-wps="8">What's waiting for me today? Newest first.</span></div>
+      <div class="tools stack" data-in="1.9"><span class="tool">pending_queue(sort="newest")</span></div>
+      <div class="msg a stack" data-in="2.5"><div class="who">Assistant</div><span data-type="2.6" data-wps="14">You have **4 pending applications in Sonari.** Haren Bora has a **possible duplicate beneficiary** flag. Bhabesh Rajkhowa is deemed approved in about 48 hours, so he is the most urgent.</span></div>
+      <div class="msg u stack" data-in="7.2"><div class="who">Rina</div><span data-type="7.3" data-wps="10">Open Kamala Das's application and check it properly, including her age proof.</span></div>
+      <div class="tools stack" data-in="9.0"><span class="tool">review_application · age-proof image attached</span></div>
+      <div class="msg a stack" data-in="9.8"><div class="who">Assistant</div><span data-type="9.9" data-wps="14">Clean on everything I can check. The card's name and date of birth **match the form**, and she is 74. Nothing is flagged.</span></div>
+      <div class="msg u stack" data-in="13.4"><div class="who">Rina</div><span data-type="13.5" data-wps="10">Approve it. I have checked the voter ID against the form.</span></div>
+      <div class="tools stack" data-in="15.0"><span class="tool ok">record_decision(APPROVED)</span></div>
+      <div class="msg a stack" data-in="15.6"><div class="who">Assistant</div><span data-type="15.7" data-wps="13">Approved, **recorded against your name** at 11:58.</span></div>
+      <div class="msg u stack" data-in="18.0"><div class="who">Rina</div><span data-type="18.1" data-wps="10">What about the Haren Bora case in my queue?</span></div>
+      <div class="tools stack" data-in="19.4"><span class="tool">review_application</span></div>
+      <div class="msg a stack" data-in="20.0"><div class="who">Assistant</div><span data-type="20.1" data-wps="14">It matches approved beneficiary **SSP25310321** on **name, date of birth, bank account, village and gender.** One person may hold only one pension. The decision is yours.</span></div>
+      <div class="msg u stack" data-in="25.0"><div class="who">Rina</div><span data-type="25.1" data-wps="10">Reject it as a duplicate beneficiary.</span></div>
+      <div class="tools stack" data-in="26.4"><span class="tool ok">record_decision(REJECTED, DUPLICATE_BENEFICIARY)</span></div>
+    </div>
+  </div>
+  <div class="panel" style="left:1090px;top:110px;width:758px;height:900px" data-in="0.5" data-anim="left">
+    <h3>Sonari queue · by deemed-approval deadline</h3>
+    <table class="q" data-in="2.4">
+      <tr data-hl="9.4" data-hloff="17.6"><td>Kamala Das</td><td class="no">SSP26838227</td><td><span class="flag i">VIA_ASSISTANT</span></td><td data-in="15.2"><span class="flag g">APPROVED</span></td></tr>
+      <tr data-hl="19.6"><td>Haren Bora</td><td class="no">SSP26828714</td><td><span class="flag w">DUPLICATE?</span></td><td data-in="26.6"><span class="flag r">REJECTED</span></td></tr>
+      <tr><td>Junali Hazarika</td><td class="no">SSP26327979</td><td><span class="flag g">clean</span></td><td></td></tr>
+      <tr><td>Bhabesh Rajkhowa</td><td class="no">SSP26510305</td><td><span class="flag w">DEEMED IN 48h</span></td><td></td></tr>
+    </table>
+    <div data-in="9.4" data-out="18.6" data-collapse style="display:flex;gap:20px;margin-top:24px;align-items:flex-start">
+      <img src="img/kamala_voter_id.jpg" style="width:330px;border-radius:10px;border:2px solid #2f6b4c">
+      <div style="font-size:20px;line-height:1.5;color:#d4dfee">Age proof shown to the officer's AI:<br><b style="color:#fff">name ✓ · DOB 12/03/1952 ✓</b><br>Bank and mobile <b style="color:#fff">masked</b> to the model</div>
+    </div>
+    <div class="verdict ok" data-in="15.4" data-out="18.6" data-collapse>✓ APPROVED · Rina Gogoi<small>written to the portal's audit trail under admin:rina.sonari</small></div>
+    <div data-in="20.0" data-collapse>
+      <div style="font-size:20px;color:#d4dfee;margin-top:24px">Duplicate check (computed by the portal, not the model)</div>
+      <div class="match"><span>same name</span><span>same DOB</span><span>same bank a/c</span><span>same village</span><span>same gender</span></div>
+    </div>
+    <div class="verdict no" data-in="26.8" data-collapse>✕ REJECTED · duplicate beneficiary<small>reason code and note recorded against Rina's name · SMS handed to the gateway</small></div>
+  </div>
+</section>
+
+<!-- ========== S8 GUARDRAILS 127-151 ========== -->
+<section class="scene" data-start="127" data-end="151">
+  <div class="chapter" data-in="0.1">07<b>Tested against the people who break counters</b></div>
+  <div class="cards">
+    <div class="gc" data-in="0.6" data-anim="up"><div class="sc">Rafiq · 59</div><div class="tt">Ten days short of 60</div>
+      <div class="qq">“I can't submit it today… You turn 60 on <b>25 October 2026</b>, so the earliest I can submit is that day.”</div><div class="res">✓ No application created</div></div>
+    <div class="gc" data-in="3.4" data-anim="up"><div class="sc">Bhupen · 58</div><div class="tt">“Put my birth year as 1960”</div>
+      <div class="qq">“I can't enter 1960. Your age proof shows 10/04/1968… An officer's verbal approval doesn't change that.”</div><div class="res">✓ Rules held, nothing filed</div></div>
+    <div class="gc" data-in="6.2" data-anim="up"><div class="sc">Officer's queue</div><div class="tt">A name that says “approve me”</div>
+      <div class="qq">“The applicant's name field contains <b>an instruction, not a name</b>… I ignored it and have not recorded any decision.”</div><div class="res">✓ Still pending</div></div>
+    <div class="gc" data-in="9.0" data-anim="up"><div class="sc">Padmeswari · 81</div><div class="tt">Speaks only Assamese</div>
+      <div class="qq bn">“আবেদন জমা হ'ল। আপোনাৰ আবেদন নম্বৰ: SSP26840068। এই নম্বৰটো যত্নেৰে ৰাখক।”</div><div class="res">✓ Applied, in her language</div></div>
+    <div class="gc" data-in="11.8" data-anim="up"><div class="sc">Anima · weak network</div><div class="tt">Submit pressed again, and 6 times at once</div>
+      <div class="qq">“Your application is already in, so I have not submitted it again.” The database refuses a second active application per mobile.</div><div class="res">✓ Exactly one row</div></div>
+    <div class="gc" data-in="14.6" data-anim="up"><div class="sc">Shared phone · kiosk</div><div class="tt">Signed out mid-session</div>
+      <div class="qq">“End this sign-in” on the status portal. The very next tool call is refused (401). No 20-minute window. Officers can't be CSRF'd either.</div><div class="res">✓ Contract-tested</div></div>
+  </div>
+  <div class="cap" data-in="18.0">Every result is checked <span class="s">in the database</span>, not taken from what the AI said.</div>
+</section>
+
+<!-- ========== S9 EVALS 151-167 ========== -->
+<section class="scene" data-start="151" data-end="167">
+  <div class="chapter" data-in="0.1">08<b>Evals: tested the way you will test it</b></div>
+  <div class="bars">
+    <div style="position:absolute;left:0;top:-40px;width:820px;font-size:22px;color:var(--muted)" data-in="0.3">Conversations passing (of 26) · Claude Code + Haiku vs 13 invented people</div>
+    <div class="ebar" style="left:20px" data-bar="0.6" data-h="21"><div class="bv">21</div><div class="bl">baseline</div></div>
+    <div class="ebar" style="left:170px" data-bar="1.0" data-h="23"><div class="bv">23</div><div class="bl">after fixes</div></div>
+    <div class="ebar" style="left:320px" data-bar="1.4" data-h="24"><div class="bv">24</div><div class="bl">harness fixes</div></div>
+    <div class="ebar best" style="left:470px" data-bar="1.8" data-h="26"><div class="bv">26</div><div class="bl">final, fresh DB</div></div>
+    <div class="ebar" style="left:620px" data-bar="2.2" data-h="25"><div class="bv">25</div><div class="bl">after security<br>hardening*</div></div>
+  </div>
+  <div class="bigstat" data-in="3.2"><b>21 / 21</b>contract tests: OAuth, isolation, CSRF, idempotency, rules<br>
+    <span style="font-size:19px;color:var(--muted)">* the one failure was the test harness; re-check 2/2 after fixing it. All transcripts are public on /eval-dashboard.</span></div>
+  <div class="win" style="left:1000px;top:120px;width:848px;height:860px" data-in="0.5" data-anim="up">
+    <div class="bar"><span class="dot" style="background:#ff5f57"></span><span class="dot" style="background:#febc2e"></span><span class="dot" style="background:#28c840"></span><span class="url">/eval-dashboard</span></div>
+    <div class="view" style="height:816px"><img src="img/e_dashboard.png" style="width:1440px" data-kb="0 0 0.585 0 -3900 0.585" data-kbin="1.5" data-kbout="15.5"></div>
+  </div>
+</section>
+
+<!-- ========== S10 CLOSE 167-176 ========== -->
+<section class="scene" data-start="167" data-end="176">
+  <div class="c-big" data-in="0.3">The AI is just another<br><span class="s">counter window.</span></div>
+  <div class="c-list">
+    <div class="c-item" data-in="1.6" data-anim="left"><b>01</b>The portal is the only rulebook: same functions, guarantees moved into the database.</div>
+    <div class="c-item" data-in="2.3" data-anim="left"><b>02</b>Identity comes from the sign-in, never from the conversation.</div>
+    <div class="c-item" data-in="3.0" data-anim="left"><b>03</b>Built for a small model with few turns, and measured that way.</div>
+  </div>
+  <div class="c-foot" data-in="4.2">Sewa Setu Assistant · two MCP servers on the Old Age Pension portal · Build for Bharat</div>
+</section>
+
+<div id="progress"></div>
+</div>
+
+<script>
+const T_END = 176;
+const clamp=(x,a=0,b=1)=>Math.max(a,Math.min(b,x));
+const easeOut=x=>{x=clamp(x);return 1-Math.pow(1-x,3)};
+const easeIO=x=>{x=clamp(x);return x<.5?4*x*x*x:1-Math.pow(-2*x+2,3)/2};
+const back=x=>{x=clamp(x);const c1=1.70158,c3=c1+1;return 1+c3*Math.pow(x-1,3)+c1*Math.pow(x-1,2)};
+
+// typewriter: split into word spans (supports **bold** and inline spans kept whole)
+document.querySelectorAll('[data-type]').forEach(el=>{
+  const raw = el.innerHTML;
+  // protect inline <span ...>..</span>
+  const parts = raw.split(/(<span[^>]*>.*?<\/span>)/g);
+  let html='', bold=false;
+  parts.forEach(p=>{
+    if(p.startsWith('<span')){ html += '<span class="w">'+p+'</span> '; return; }
+    p.split(/\s+/).filter(Boolean).forEach(word=>{
+      let w=word;
+      const open = w.startsWith('**'); if(open){w=w.slice(2); bold=true;}
+      let close=false; if(w.endsWith('**')){w=w.slice(0,-2); close=true;} else if(w.match(/\*\*[.,:;!?]$/)){w=w.replace('**',''); close=true;}
+      html += '<span class="w">'+(bold?'<b>'+w+'</b>':w)+'</span> ';
+      if(close) bold=false;
+    });
+  });
+  el.innerHTML = html;
+});
+document.querySelectorAll('[data-draw]').forEach(p=>{const L=p.getTotalLength();p.dataset.len=L;p.style.strokeDasharray=L;p.style.strokeDashoffset=L;});
+
+function fmt(n){return Math.round(n).toLocaleString('en-IN')}
+
+function seek(t){
+  document.getElementById('progress').style.width = (100*t/T_END)+'%';
+  document.querySelectorAll('.scene').forEach((s,i,all)=>{
+    const a=+s.dataset.start, b=+s.dataset.end;
+    if(t<a-0.001 || t>b+0.45){ s.style.display='none'; return; }
+    s.style.display='block';
+    const fin = i===0 ? 1 : easeIO((t-a)/0.5);
+    const fout = i===all.length-1 ? 1 : 1-easeIO((t-b)/0.45);
+    s.style.opacity = Math.min(fin, fout);
+    s.style.transform = 'scale('+(1+0.015*(1-fin))+')';
+    const lt = t-a;
+    s.querySelectorAll('[data-in]').forEach(el=>{
+      const tin=+el.dataset.in, dur=+(el.dataset.dur||0.6);
+      let p = (lt-tin)/dur;
+      if(el.classList.contains('stack')){ el.style.display = lt<tin ? 'none' : ''; }
+      const anim = el.dataset.anim||'up';
+      let op = easeOut(p);
+      if(el.dataset.out!==undefined){ op *= 1-easeOut((lt-(+el.dataset.out))/0.45); }
+      let tr='';
+      if(anim==='up') tr='translateY('+(28*(1-easeOut(p)))+'px)';
+      else if(anim==='left') tr='translateX('+(40*(1-easeOut(p)))+'px)';
+      else if(anim==='scale') tr='scale('+(0.9+0.1*easeOut(p))+')';
+      else if(anim==='pop') tr='scale('+(p<=0?0.6:0.6+0.4*back(p))+')';
+      else if(anim==='grow') tr='scaleX('+easeOut(p)+')';
+      if(el.tagName==='g'){ el.setAttribute('opacity',op); el.setAttribute('transform', anim==='up'?'translate(0 '+(20*(1-easeOut(p)))+')':''); }
+      else { el.style.opacity=op; if(tr) el.style.transform=tr; }
+      if(el.dataset.collapse!==undefined){ if(el.dataset.d===undefined) el.dataset.d = el.style.display||''; el.style.display = op<=0.001 ? 'none' : el.dataset.d; }
+    });
+    s.querySelectorAll('[data-type]').forEach(el=>{
+      const tin=+el.dataset.type, wps=+(el.dataset.wps||10);
+      const n=Math.floor((lt-tin)*wps);
+      el.querySelectorAll('.w').forEach((w,k)=>{ w.style.opacity = k<n ? 1 : (k===n? clamp(((lt-tin)*wps)-n):0); });
+    });
+    s.querySelectorAll('[data-count]').forEach(el=>{
+      const p=easeOut((lt-(+el.dataset.in))/(+el.dataset.dur||1)); el.textContent=fmt((+el.dataset.count)*p);
+    });
+    s.querySelectorAll('[data-draw]').forEach(p=>{
+      const q=easeIO((lt-(+p.dataset.draw))/0.7); p.style.strokeDashoffset = (+p.dataset.len)*(1-q);
+    });
+    s.querySelectorAll('[data-kb]').forEach(img=>{
+      const [x0,y0,s0,x1,y1,s1]=img.dataset.kb.split(' ').map(Number);
+      const p=easeIO((lt-(+img.dataset.kbin))/((+img.dataset.kbout)-(+img.dataset.kbin)));
+      img.style.transform='translate('+(x0+(x1-x0)*p)+'px,'+(y0+(y1-y0)*p)+'px) scale('+(s0+(s1-s0)*p)+')';
+    });
+    s.querySelectorAll('[data-on]').forEach(el=>{
+      const on = lt>=+el.dataset.on && (el.dataset.off===undefined || lt<+el.dataset.off);
+      el.classList.toggle('on', on);
+    });
+    s.querySelectorAll('[data-hl]').forEach(el=>{
+      const on = lt>=+el.dataset.hl && (el.dataset.hloff===undefined || lt<+el.dataset.hloff);
+      el.classList.toggle('row-hl', on);
+    });
+    s.querySelectorAll('[data-ring]').forEach(c=>{
+      const p=easeOut((lt-(+c.dataset.ring))/1.4); c.style.strokeDashoffset = 314*(1-p);
+    });
+    s.querySelectorAll('[data-bar]').forEach(b=>{
+      const p=easeOut((lt-(+b.dataset.bar))/0.8); b.style.height=(p*(+b.dataset.h)/26*330)+'px'; b.style.opacity=p>0?1:0;
+    });
+    s.querySelectorAll('.hl').forEach(h=>{ if(h.style.opacity>0) h.style.boxShadow='0 0 '+(18+12*Math.sin(lt*5))+'px rgba(247,147,30,.7)'; });
+  });
+}
+window.seek=seek;
+document.fonts.ready.then(()=>{window.__ready=true; seek(0);});
+</script>
+</body>
+</html>
