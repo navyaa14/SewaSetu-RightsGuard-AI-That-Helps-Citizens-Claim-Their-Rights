@@ -27,8 +27,10 @@ DECLARATION = ("I hereby declare that the information furnished above is true to
 
 INSTRUCTIONS = """Sewa Setu is the official Old Age Pension portal of the Government of Purvanchal
 (Rs 250 a month for residents aged 60+). These tools act for the person who signed in, using
-the mobile number she verified by OTP. That mobile becomes the applicant's mobile and her
-status-portal login, so sign in with the APPLICANT'S own number (not a helper's).
+the mobile number she verified by OTP. That mobile becomes the applicant's mobile, her
+status-portal login and where her SMS go, so sign in with the number that will be hers for this
+application: her own, or (if she has no phone) a family member's number that holds no application.
+A helper such as a CSC operator must not use his own number for several people.
 
 Typical flow (few calls):
 1. my_applications - see if she already has an application (status, decision deadline).
@@ -210,8 +212,9 @@ def scheme_info(ctx: Context) -> dict:
         "scheme": "Old Age Pension Scheme, Department of Social Welfare, Government of Purvanchal",
         "amount": "Rs 250 per month, paid by DBT into the applicant's own bank account",
         "who_can_apply": "residents of Purvanchal aged %d or above on the day of applying" % portal.MIN_AGE,
-        "one_application": ("one active application per mobile number. Two people cannot share one "
-                            "mobile number for two applications; each needs her own number"),
+        "one_application": ("one active application per mobile number. Two people cannot hold applications "
+                            "on the same number. Someone without a phone of her own can use a family member's "
+                            "number that has no application; it becomes her login and receives her SMS"),
         "documents": ["one age proof: birth certificate, school leaving certificate or Voter ID "
                       "(photo or PDF, up to 5 MB)", "bank account number and IFSC (from the passbook)"],
         "application_window": _deadline_info(),

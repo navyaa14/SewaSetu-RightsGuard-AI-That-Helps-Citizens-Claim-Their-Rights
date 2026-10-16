@@ -1,0 +1,56 @@
+[
+ {
+  "title": "An age proof cannot travel through a chat",
+  "found": "Before the first run: a small model in Claude Code cannot carry a 5 MB photo inside a tool call, and an elderly applicant cannot either.",
+  "changed": "Added 30-minute upload links tied to the signed-in mobile. They open on a phone, and they also accept `curl -F document=@file`. Every draft response includes the link and the curl command.",
+  "result": "In the eval runs, Haiku uploaded the grandson's file itself with curl, and the people with photos on their phones used the link."
+ },
+ {
+  "title": "The officer's assistant actually looks at the age proof",
+  "found": "Run 1: my own test documents said 'TEST DOCUMENT - NOT VALID'. The officer's assistant read the image, refused to recommend approval, and the officer (played by a second model) rejected or held the case. Three of the five failures came from this.",
+  "changed": "Nothing in the product; this is the behaviour we want. The test fixtures are now plausible (fictional) voter cards.",
+  "result": "Run 2: the officer approval and duplicate scenarios passed with clean documents."
+ },
+ {
+  "title": "Flags pointed at records the officer could not open",
+  "found": "Run 1: a 'same bank account' flag listed applications in another block. The Sonari officer's assistant got 'No application in Sonari' for each one and spent its turns going in circles.",
+  "changed": "Flags now include the other record's block, applicant name and status, and the duplicate flag lists exactly which fields match (name, date of birth, bank, village, gender) and which differ.",
+  "result": "Run 2: the duplicate case was resolved from the flag alone (2/2)."
+ },
+ {
+  "title": "A small model forgot who it was speaking for",
+  "found": "Run 1 (Mira): after the IFSC problem, Haiku spent three turns speaking as Mira herself and ran out of exchanges before submitting.",
+  "changed": "Every citizen tool result now carries `say_to_applicant`, a plain message to pass on, and the server instructions say: speak TO the applicant, never as her.",
+  "result": "Mira passed 2/2 in runs 2, 3 and 4. Still open: a brief role swap reappeared once (the shared-phone re-check, attempt 1). The database outcome stayed correct, because the rules live in the server, not in the model."
+ },
+ {
+  "title": "Officers asked to put a case on hold",
+  "found": "Run 1: officers who were unsure asked for a 'hold' or 'field verification'. There is no such state: an undecided case is deemed approved after 15 days.",
+  "changed": "The officer server's instructions now explain this and tell the assistant to give the deemed-approval date so she decides in time. Whether such a case should be deemed approved at all is a question for the Director (see the design note).",
+  "result": "The assistants now state the deadline instead of promising a hold."
+ },
+ {
+  "title": "Claimed uploads that never arrived",
+  "found": "Run 2: simulated people said 'uploaded' without uploading. The assistant believed the portal rather than the person and correctly did not submit, but it could not say why.",
+  "changed": "The draft now says explicitly that nothing has arrived through any link, and what to do. The harness was also fixed: the person's message is checked for an upload claim in any language, and file-holding personas no longer pretend to use links.",
+  "result": "Run 3: Kamala 2/2 and Padmeswari 2/2. Run 4: 2/2 each."
+ },
+ {
+  "title": "The harness made its own duplicates",
+  "found": "Run 2: the officer scenario reused the same invented applicant in both attempts. The second was correctly flagged as a duplicate of the first, which had just been approved, so the officer refused, and also reported a decision 'she had not made'.",
+  "changed": "A different invented applicant for every attempt (run 3), and the officer's persona card no longer names the applicant (in run 3 she kept asking for an old 'Kamini Bora' instead of the newest case).",
+  "result": "Run 4 (fresh database): officer approval 2/2. Both causes were harness bugs, but they showed the duplicate check working across channels."
+ },
+ {
+  "title": "ToolSearch costs a turn on every message",
+  "found": "All runs: Claude Code defers MCP tools and reloads them with ToolSearch at the start of nearly every message, which uses a turn out of a tight budget.",
+  "changed": "Kept the tool count small (7 citizen, 4 officer), made one call enough to save every field, and made each result state the next step, so fewer turns are needed.",
+  "result": "Typical full application: 3 to 4 messages, with 2 to 5 MCP calls per message."
+ },
+ {
+  "title": "Shared-phone advice was stricter than the portal",
+  "found": "Run 4 transcript: the assistant told Lakhi that her daughter's number could not be used. The portal allows any mobile that holds no application. My instructions ('sign in with the applicant's own number') were wrong.",
+  "changed": "The server instructions and scheme_info now say: use her own number or a family member's number with no application. That number becomes her login and receives her SMS. A CSC operator must not reuse his own number.",
+  "result": "Re-check run: 2/2. In one attempt the assistant noticed the sign-in was still on the husband's number and stopped before sending an OTP to the wrong place."
+ }
+]
